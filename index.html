@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام السكالبينغ المتقدم - متعدد الأنماط والتصنيفات</title>
+    <title>نظام السكالبينغ المتقدم - تحكم كامل بالصفقات و OKX API</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -36,10 +36,10 @@
             </div>
             <div>
                 <h1 class="text-lg font-bold text-white leading-tight flex items-center gap-2">
-                    نظام السكالبينغ متعدد الأنماط والتصنيفات (OKX API)
-                    <span class="text-[10px] bg-accentPurple/25 text-accentPurple border border-accentPurple/40 px-2 py-0.5 rounded-full font-extrabold">توقيت الرياض نشط</span>
+                    نظام السكالبينغ المتطور (OKX API Real Execution)
+                    <span class="text-[10px] bg-accentPurple/25 text-accentPurple border border-accentPurple/40 px-2 py-0.5 rounded-full font-extrabold">تحكم بـ TP & SL مباشر</span>
                 </h1>
-                <p class="text-xs text-gray-400">النمط العادي، أسرع الصفقات، وتصنيفات الأداء المتقدمة</p>
+                <p class="text-xs text-gray-400">إدارة الأنماط، تتبع أوقات الرياض، وإغلاق الصفقات يدوياً بضغطة زر</p>
             </div>
         </div>
 
@@ -52,7 +52,7 @@
 
     <main class="flex-1 p-3 lg:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 max-w-[1920px] mx-auto w-full">
 
-        <!-- LEFT COLUMN: Modes, Budgets & Classifications -->
+        <!-- LEFT COLUMN: Settings -->
         <section class="lg:col-span-3 flex flex-col gap-4">
             
             <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm space-y-4">
@@ -60,7 +60,6 @@
                     <i class="fa-solid fa-sliders text-accentBlue"></i> إدارة الأنماط والتصنيفات
                 </h2>
                 
-                <!-- Normal Mode & Classifications -->
                 <div class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-3">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-white">النمط العادي (ربح 0.30%+)</span>
@@ -78,19 +77,18 @@
                     </div>
 
                     <div class="flex items-center justify-between text-[11px] text-gray-400">
-                        <span>ميزانية النمط:</span>
+                        <span>ميزانية النمط (USDT):</span>
                         <input type="number" id="normalBudgetInput" value="5000" onchange="updateBudgets()" class="w-20 bg-cardBg border border-cardBorder rounded px-2 py-1 text-white font-mono text-center">
                     </div>
                 </div>
 
-                <!-- Fast Mode -->
                 <div class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-white">النمط السريع ⚡ (ربح 0.10%+)</span>
                         <button id="fastModeBtn" onclick="toggleMode('fast')" class="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-lg text-xs font-bold border border-amber-500/30">معطل</button>
                     </div>
                     <div class="flex items-center justify-between text-[11px] text-gray-400">
-                        <span>ميزانية النمط:</span>
+                        <span>ميزانية النمط (USDT):</span>
                         <input type="number" id="fastBudgetInput" value="5000" onchange="updateBudgets()" class="w-20 bg-cardBg border border-cardBorder rounded px-2 py-1 text-white font-mono text-center">
                     </div>
                 </div>
@@ -114,14 +112,14 @@
                 <h2 class="text-xs font-bold text-gray-200 flex items-center gap-1.5 mb-3">
                     <i class="fa-solid fa-list-ul text-accentBlue"></i> الأسواق الحية
                 </h2>
-                <div id="coinsListContainer" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 max-h-[180px]"></div>
+                <div id="coinsListContainer" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 max-h-[160px]"></div>
             </div>
         </section>
 
-        <!-- CENTER COLUMN: Charts & Tables with Riyadh Time Expectations -->
+        <!-- CENTER COLUMN: Tables with TP/SL controls & Close Buttons -->
         <section class="lg:col-span-9 flex flex-col gap-4">
             
-            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm h-[380px] flex flex-col">
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm h-[360px] flex flex-col">
                 <div class="flex items-center justify-between mb-2">
                     <h2 class="text-xs font-bold text-white flex items-center gap-1.5">
                         <i class="fa-solid fa-chart-candlestick text-accentGreen"></i> الرسم البياني المباشر (TradingView)
@@ -131,11 +129,11 @@
                 <div class="w-full flex-1 rounded-xl overflow-hidden bg-darkBg" id="tradingview_chart"></div>
             </div>
 
-            <!-- TABLE 1: NORMAL MODE -->
+            <!-- TABLE 1: NORMAL MODE POSITIONS WITH CONTROLS -->
             <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-xs font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-shield-halved text-accentGreen"></i> صفقات النمط العادي (الحد الأدنى للربح: 0.30%)
+                        <i class="fa-solid fa-shield-halved text-accentGreen"></i> صفقات النمط العادي (التحكم بأوامر TP & SL)
                     </h2>
                 </div>
                 <div class="overflow-x-auto custom-scrollbar">
@@ -143,26 +141,28 @@
                         <thead>
                             <tr class="text-gray-400 border-b border-cardBorder bg-darkBg/60 text-[11px]">
                                 <th class="p-2.5">العملة</th>
-                                <th class="p-2.5">التصنيف والنوع</th>
+                                <th class="p-2.5">التصنيف</th>
                                 <th class="p-2.5">سعر الدخول</th>
                                 <th class="p-2.5">السعر الحالي</th>
                                 <th class="p-2.5">الهدف (TP)</th>
-                                <th class="p-2.5">الربح / الخسارة (PnL)</th>
-                                <th class="p-2.5 text-center">وقت الانتهاء المتوقع (الرياض)</th>
+                                <th class="p-2.5">وقف الخسارة (SL)</th>
+                                <th class="p-2.5">PnL</th>
+                                <th class="p-2.5 text-center">الرياض</th>
+                                <th class="p-2.5 text-center">إيقاف صفقة / جني</th>
                             </tr>
                         </thead>
                         <tbody id="normalPositionsTable" class="divide-y divide-cardBorder/50 text-gray-200">
-                            <tr><td colspan="7" class="text-center py-4 text-gray-500 text-xs">النمط العادي ينتظر الفرص...</td></tr>
+                            <tr><td colspan="9" class="text-center py-4 text-gray-500 text-xs">بانتظار الصفقات عبر الـ API...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- TABLE 2: FAST MODE (Flash Trades) -->
+            <!-- TABLE 2: FAST MODE POSITIONS WITH CONTROLS -->
             <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm border-amber-500/30">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-xs font-bold text-amber-400 flex items-center gap-2">
-                        <i class="fa-solid fa-bolt text-amber-400"></i> قائمة أسرع الصفقات - النمط السريع ⚡ (ربح 0.10%)
+                        <i class="fa-solid fa-bolt text-amber-400"></i> النمط السريع ⚡ (أسرع الصفقات - تحكم مباشر بـ TP & SL)
                     </h2>
                 </div>
                 <div class="overflow-x-auto custom-scrollbar">
@@ -173,13 +173,15 @@
                                 <th class="p-2.5">النوع</th>
                                 <th class="p-2.5">سعر الدخول</th>
                                 <th class="p-2.5">السعر الحالي</th>
-                                <th class="p-2.5">الهدف الفوري (TP)</th>
-                                <th class="p-2.5">الربح / الخسارة (PnL)</th>
-                                <th class="p-2.5 text-center">وقت الانتهاء الفوري (الرياض)</th>
+                                <th class="p-2.5">الهدف (TP)</th>
+                                <th class="p-2.5">وقف الخسارة (SL)</th>
+                                <th class="p-2.5">PnL</th>
+                                <th class="p-2.5 text-center">الرياض</th>
+                                <th class="p-2.5 text-center">إيقاف صفقة / جني</th>
                             </tr>
                         </thead>
                         <tbody id="fastPositionsTable" class="divide-y divide-cardBorder/50 text-gray-200">
-                            <tr><td colspan="7" class="text-center py-4 text-gray-500 text-xs">النمط السريع معطل...</td></tr>
+                            <tr><td colspan="9" class="text-center py-4 text-gray-500 text-xs">النمط السريع معطل...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -221,11 +223,11 @@
                     document.getElementById('okxBalanceDisplay').innerText = `$${formatPrice(data.balance.total)} USDT`;
                 }
 
-                // جدول النمط العادي مع وقت الانتهاء المتوقع بتوقيت الرياض
+                // جدول النمط العادي مع أزرار التحكم في إيقاف الصفقة وجني الأرباح
                 const normalTbody = document.getElementById('normalPositionsTable');
                 if (normalTbody && data.positions) {
                     if (data.positions.length === 0) {
-                        normalTbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-gray-500 text-xs">لا توجد صفقات عادية حالياً...</td></tr>`;
+                        normalTbody.innerHTML = `<tr><td colspan="9" class="text-center py-3 text-gray-500 text-xs">لا توجد صفقات عادية حالياً...</td></tr>`;
                     } else {
                         normalTbody.innerHTML = "";
                         data.positions.forEach(pos => {
@@ -237,21 +239,27 @@
                                 <td class="p-2.5">$${formatPrice(pos.entryPrice)}</td>
                                 <td class="p-2.5 text-blue-400">$${formatPrice(pos.currentPrice)}</td>
                                 <td class="p-2.5 text-emerald-400">$${formatPrice(pos.tp)}</td>
+                                <td class="p-2.5 text-red-400">$${formatPrice(pos.sl)}</td>
                                 <td class="p-2.5 font-bold ${pos.isProfit ? 'text-accentGreen' : 'text-accentRed'}">${pos.pnl}</td>
-                                <td class="p-2.5 text-center text-accentOrange text-xs font-bold">${pos.endTime || '--:--'}</td>
+                                <td class="p-2.5 text-center text-accentOrange text-xs font-bold">${pos.endTime}</td>
+                                <td class="p-2.5 text-center">
+                                    <button onclick="closePosition(${pos.id}, false)" class="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white px-2.5 py-1 rounded text-[11px] font-bold border border-red-500/30 transition">
+                                        إيقاف / إغلاق
+                                    </button>
+                                </td>
                             `;
                             normalTbody.appendChild(tr);
                         });
                     }
                 }
 
-                // جدول النمط السريع (أسرع الصفقات) مع وقت الانتهاء
+                // جدول النمط السريع مع أزرار التحكم
                 const fastTbody = document.getElementById('fastPositionsTable');
                 if (fastTbody && data.fast_positions) {
                     if (!fastModeActive) {
-                        fastTbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-amber-500/60 text-xs">النمط السريع غير مفعل حالياً.</td></tr>`;
+                        fastTbody.innerHTML = `<tr><td colspan="9" class="text-center py-3 text-amber-500/60 text-xs">النمط السريع غير مفعل حالياً.</td></tr>`;
                     } else if (data.fast_positions.length === 0) {
-                        fastTbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-gray-500 text-xs">جاري رصد أسرع الصفقات الفورية...</td></tr>`;
+                        fastTbody.innerHTML = `<tr><td colspan="9" class="text-center py-3 text-gray-500 text-xs">جاري رصد أسرع الصفقات الفورية...</td></tr>`;
                     } else {
                         fastTbody.innerHTML = "";
                         data.fast_positions.forEach(pos => {
@@ -263,8 +271,14 @@
                                 <td class="p-2.5">$${formatPrice(pos.entryPrice)}</td>
                                 <td class="p-2.5 text-blue-400">$${formatPrice(pos.currentPrice)}</td>
                                 <td class="p-2.5 text-amber-400">$${formatPrice(pos.tp)}</td>
+                                <td class="p-2.5 text-red-400">$${formatPrice(pos.sl)}</td>
                                 <td class="p-2.5 font-bold ${pos.isProfit ? 'text-accentGreen' : 'text-accentRed'}">${pos.pnl}</td>
-                                <td class="p-2.5 text-center text-amber-400 text-xs font-bold">${pos.endTime || '--:--'}</td>
+                                <td class="p-2.5 text-center text-amber-400 text-xs font-bold">${pos.endTime}</td>
+                                <td class="p-2.5 text-center">
+                                    <button onclick="closePosition(${pos.id}, true)" class="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white px-2.5 py-1 rounded text-[11px] font-bold border border-red-500/30 transition">
+                                        إيقاف / إغلاق
+                                    </button>
+                                </td>
                             `;
                             fastTbody.appendChild(tr);
                         });
@@ -277,19 +291,23 @@
             } catch (e) {}
         }
 
+        async function closePosition(id, isFast) {
+            await fetch('/api/close_position', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({position_id: id, is_fast: isFast})
+            });
+            fetchBackendStateAndSync();
+        }
+
         async function toggleMode(mode) {
             if (mode === 'normal') normalModeActive = !normalModeActive;
             if (mode === 'fast') fastModeActive = !fastModeActive;
             sendControlUpdate();
         }
 
-        async function updateBudgets() {
-            sendControlUpdate();
-        }
-
-        async function updateClassification() {
-            sendControlUpdate();
-        }
+        async function updateBudgets() { sendControlUpdate(); }
+        async function updateClassification() { sendControlUpdate(); }
 
         async function sendControlUpdate() {
             await fetch('/api/control', {
@@ -345,7 +363,8 @@
                 "autosize": true, "symbol": tvSymbol, "interval": "1",
                 "timezone": "Asia/Riyadh", "theme": "dark", "style": "1",
                 "locale": "ar", "toolbar_bg": "#121824", "enable_publishing": false,
-                "container_id": "tradingview_chart"            });
+                "container_id": "tradingview_chart"
+            });
         }
 
         function toggleMasterSystem() {
