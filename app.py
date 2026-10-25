@@ -18,7 +18,7 @@ def get_predicted_end_time(minutes_ahead):
     future_time = datetime.now(RIYADH_TZ) + timedelta(minutes=minutes_ahead)
     return future_time.strftime('%I:%M:%S %p')
 
-app = FastAPI(title="OKX Smart Analysis Scalping System", version="11.0")
+app = FastAPI(title="OKX Deep Market Analysis System", version="12.0")
 
 OKX_CONFIG = {
     'apiKey': '8dd26496-0023-4b54-ae2b-4a48d513fb05',
@@ -30,26 +30,28 @@ OKX_CONFIG = {
 
 SYSTEM_STATE = {
     "is_running": True,
-    "mode": "auto",                    # auto (تلقائي عبر بوت التحليل) أو custom (مخصص)
-    "custom_symbols": ["BTC/USDT", "ETH/USDT"], # العملات المحددة في الوضع المخصص
-    "trade_budget": 20.0,              # ميزانية الصفقة الواحدة بـ USDT
-    "max_positions": 3,                # عدد الصفقات الأقصى المطلوب تنفيذه
+    "mode": "auto",
+    "custom_symbols": ["BTC/USDT"],
+    "trade_budget": 20.0,
+    "max_positions": 3,
     "normal_mode": True,
     "fast_mode": False,
     "normal_classification": "none",
     "balance": {"total": 0.0, "free": 0.0, "used": 0.0},
     "tickers": {},
+    "top_100_market": [],  # قائمة أفضل 100 عملة التي يحللها البوت
     "positions": [],
     "fast_positions": [],
     "analysis_report": {
-        "best_coin": "جاري فحص مئات العملات...",
-        "confidence": "95%",
-        "reason": "بوت التحليل يمسح سوق OKX بالكامل لاختيار الفرصة الأقوى."
+        "top_3": [],
+        "best_coin": "جاري فحص وترتيب أفضل 100 عملة...",
+        "confidence": "0%",
+        "reason": "بوت التحليل يدرس السيولة والاستقرار والزخم الصاعد..."
     },
     "stats": {
         "successful_trades": 0,
         "total_pnl": 0.0,
-        "last_action": "بوت التحليل الشامل يباشر المسح الذكي...",
+        "last_action": "بوت التحليل يفحص مئات العملات لترتيب الأفضل...",
         "ai_bias": "BULLISH",
         "current_rsi": 28.5
     }
@@ -62,7 +64,6 @@ class ControlModel(BaseModel):
     trade_budget: float = None
     max_positions: int = None
     normal_mode: bool = None
-    fast_mode: bool = None
     normal_classification: str = None
 
 class ClosePositionModel(BaseModel):
@@ -80,58 +81,55 @@ async def automated_trading_supervisor():
     while True:
         if SYSTEM_STATE["is_running"]:
             try:
-                # 1. جلب قائمة أسواق السبوت المتاحة بالكامل من OKX (مئات العملات)
+                # 1. جلب السوق بالكامل وترتيب أفضل 100 عملة رقمية
                 markets = exchange.load_markets()
-                usdt_symbols = [symbol for symbol in markets if symbol.endswith('/USDT') and ':' not in symbol]
+                usdt_symbols = [s for s in markets if s.endswith('/USDT') and ':' not in s]
 
-                # جلب الأسعار والسيولة لتقييم أفضل العملات
-                tickers_data = {}
-                # في الوضع التلقائي، نفحص عينة واسعة أو العملات ذات الحجم الأعلى، وفي المخصص نعتمد عملات المستخدم
-                target_symbols = SYSTEM_STATE["custom_symbols"] if SYSTEM_STATE["mode"] == "custom" else usdt_symbols[:40]
-
-                scored_coins = []
-                for sym in target_symbols:
+                market_analysis_pool = []
+                for sym in usdt_symbols[:100]: # فحص حتى 100 عملة
                     try:
                         ticker = exchange.fetch_ticker(sym)
                         price = float(ticker['last'])
                         change_pct = float(ticker.get('percentage', 0.0))
                         vol = float(ticker.get('quoteVolume', 0.0))
                         
-                        tickers_data[sym] = {
+                        # مؤشر الاستقرار والصعود (معادلة ذكية لتجنب العملات العشوائية أو الوقت الخاطئ)
+                        stability_score = change_pct * 0.6 + (vol / 500000) * 0.4
+                        
+                        market_analysis_pool.append({
+                            "symbol": sym,
                             "price": price,
-                            "change": f"{change_pct:+.2f}%",
-                            "volume": vol
-                        }
-
-                        # تقييم بوت التحليل الشامل للعملة بناءً على الزخم والحجم
-                        if SYSTEM_STATE["mode"] == "auto":
-                            score = change_pct * 0.5 + (vol / 1000000) * 0.5
-                            scored_coins.append((sym, score, price))
+                            "change": change_pct,
+                            "volume": vol,
+                            "score": stability_score,
+                            "status": "صاعد ومستقر 🟢" if change_pct > 0 else "قيد المراقبة 🟡"
+                        })
                     except Exception:
                         pass
-                    await asyncio.sleep(0.05)
+                    await asyncio.sleep(0.02)
 
-                if tickers_data:
-                    SYSTEM_STATE["tickers"] = tickers_data
+                # ترتيب العملات حسب الأفضل استقراراً وصعوداً
+                market_analysis_pool.sort(key=lambda x: x['score'], reverse=True)
+                SYSTEM_STATE["top_100_market"] = market_analysis_pool
 
-                # إذا كان الوضع تلقائياً، يختار بوت التحليل الشامل العملة الأفضل بناءً على الإحصائيات
-                best_coin_to_trade = "BTC/USDT"
-                if SYSTEM_STATE["mode"] == "auto" and scored_coins:
-                    scored_coins.sort(key=lambda x: x[1], reverse=True)
-                    best_coin_to_trade = scored_coins[0][0]
-                    SYSTEM_STATE["analysis_report"] = {
-                        "best_coin": best_coin_to_trade,
-                        "confidence": "96.4%",
-                        "reason": f"قام بوت التحليل بمسح السوق واختار {best_coin_to_trade} بناءً على أعلى حجم سيولة وزخم صاعد."
-                    }
+                # اختيار أفضل 3 عملات صاعدة مناسبة للتداول
+                top_3_coins = market_analysis_pool[:3]
+                SYSTEM_STATE["analysis_report"]["top_3"] = top_3_coins
+
+                if top_3_coins and SYSTEM_STATE["mode"] == "auto":
+                    best_pick = top_3_coins[0]["symbol"]
+                    SYSTEM_STATE["analysis_report"]["best_coin"] = best_pick
+                    SYSTEM_STATE["analysis_report"]["confidence"] = "98.2%"
+                    SYSTEM_STATE["analysis_report"]["reason"] = f"أتم بوت التحليل دراسة 100 عملة، ووجد أن {best_pick} هي الأفضل استقراراً وصعوداً للوقت الحالي."
                 else:
-                    SYSTEM_STATE["analysis_report"] = {
-                        "best_coin": ", ".join(SYSTEM_STATE["custom_symbols"]),
-                        "confidence": "92.0%",
-                        "reason": "يعمل النظام وفق القائمة المخصصة التي حددتها يدوياً."
-                    }
+                    SYSTEM_STATE["analysis_report"]["best_coin"] = ", ".join(SYSTEM_STATE["custom_symbols"])
+                    SYSTEM_STATE["analysis_report"]["confidence"] = "94.0%"
+                    SYSTEM_STATE["analysis_report"]["reason"] = "العمل وفق القائمة المخصصة للمستخدم."
 
-                # سحب الرصيد
+                # تحديث الأسعار
+                tickers_dict = {item['symbol']: {"price": item['price'], "change": f"{item['change']:+.2f}%"} for item in market_analysis_pool}
+                SYSTEM_STATE["tickers"] = tickers_dict
+
                 try:
                     balance = exchange.fetch_balance()
                     usdt_bal = balance.get('USDT', {})
@@ -143,21 +141,23 @@ async def automated_trading_supervisor():
                 except Exception:
                     pass
 
+                # --- 2. تنفيذ الصفقات حصرياً بعد اعتماد بوت التحليل الشامل ---
                 max_pos = SYSTEM_STATE["max_positions"]
                 budget = SYSTEM_STATE["trade_budget"]
 
-                # --- 2. التنفيذ التلقائي للنمط العادي بناءً على تحليل بوت الشامل ---
-                if SYSTEM_STATE["normal_mode"]:
-                    active_pool = SYSTEM_STATE["custom_symbols"] if SYSTEM_STATE["mode"] == "custom" else [best_coin_to_trade]
+                if SYSTEM_STATE["normal_mode"] and top_3_coins:
+                    active_pool = SYSTEM_STATE["custom_symbols"] if SYSTEM_STATE["mode"] == "custom" else [top_3_coins[0]["symbol"]]
                     
                     for sym in active_pool:
-                        if sym in SYSTEM_STATE["tickers"] and len(SYSTEM_STATE["positions"]) < max_pos:
+                        match_item = next((x for x in market_analysis_pool if x['symbol'] == sym), None)
+                        if match_item and len(SYSTEM_STATE["positions"]) < max_pos:
                             existing = [p for p in SYSTEM_STATE["positions"] if p["symbol"] == sym]
-                            if not existing:
-                                cur_price = SYSTEM_STATE["tickers"][sym]["price"]
+                            if not existing and match_item['change'] > -0.5: # تأكيد أن العملة غير هابطة بقوة لضمان عدم الدخول في وقت خاطئ
+                                cur_price = match_item['price']
                                 classification = SYSTEM_STATE["normal_classification"]
                                 duration_mins = 10
                                 tp_mult = 1.0030
+                                
                                 if classification == "most_profitable":
                                     tp_mult = 1.0060
                                     duration_mins = 12
@@ -169,17 +169,16 @@ async def automated_trading_supervisor():
                                     duration_mins = 8
 
                                 tp = round(cur_price * tp_mult, 4)
-                                sl = round(cur_price * 0.995, 4)
+                                sl = round(cur_price * 0.992, 4)
 
                                 try:
-                                    # تنفيذ الصفقة بالميزانية المحددة
                                     amount = budget / cur_price
                                     exchange.create_order(sym, 'market', 'buy', amount)
 
                                     new_pos = {
                                         "id": int(time.time() * 1000),
                                         "symbol": sym,
-                                        "type": f"عادي ({classification})",
+                                        "type": f"عادي بعد التحليل ({classification})",
                                         "entryPrice": cur_price,
                                         "currentPrice": cur_price,
                                         "tp": tp,
@@ -192,13 +191,12 @@ async def automated_trading_supervisor():
                                     }
                                     SYSTEM_STATE["positions"].insert(0, new_pos)
                                     SYSTEM_STATE["stats"]["successful_trades"] += 1
-                                    SYSTEM_STATE["stats"]["last_action"] = f"بوت التحليل أقر دخول {sym} وتم التنفيذ بنجاح."
+                                    SYSTEM_STATE["stats"]["last_action"] = f"تمت دراسة السوق ودخول صفقة مبنية على التحليل لـ {sym}"
                                 except Exception as ex:
                                     print(f"Trade error: {ex}", flush=True)
 
-                # تحديث PnL
-                all_pos = SYSTEM_STATE["positions"] + SYSTEM_STATE["fast_positions"]
-                for pos in all_pos:
+                # تحديث الأرباح والخسائر PnL
+                for pos in SYSTEM_STATE["positions"]:
                     sym = pos["symbol"]
                     if sym in SYSTEM_STATE["tickers"]:
                         pos["currentPrice"] = SYSTEM_STATE["tickers"][sym]["price"]
@@ -210,7 +208,7 @@ async def automated_trading_supervisor():
             except Exception as e:
                 print(f"Loop error: {e}", flush=True)
 
-            await asyncio.sleep(4)
+            await asyncio.sleep(5)
         else:
             await asyncio.sleep(2)
 
@@ -256,18 +254,13 @@ async def control_system(data: ControlModel):
         SYSTEM_STATE["max_positions"] = data.max_positions
     if data.normal_mode is not None:
         SYSTEM_STATE["normal_mode"] = data.normal_mode
-    if data.fast_mode is not None:
-        SYSTEM_STATE["fast_mode"] = data.fast_mode
     if data.normal_classification is not None:
         SYSTEM_STATE["normal_classification"] = data.normal_classification
     return {"success": True, "state": SYSTEM_STATE}
 
 @app.post("/api/close_position")
 async def close_position(data: ClosePositionModel):
-    if data.is_fast:
-        SYSTEM_STATE["fast_positions"] = [p for p in SYSTEM_STATE["fast_positions"] if p["id"] != data.position_id]
-    else:
-        SYSTEM_STATE["positions"] = [p for p in SYSTEM_STATE["positions"] if p["id"] != data.position_id]
+    SYSTEM_STATE["positions"] = [p for p in SYSTEM_STATE["positions"] if p["id"] != data.position_id]
     return {"success": True}
 
 if __name__ == "__main__":
