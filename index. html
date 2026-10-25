@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام السكالبينغ المتقدم - متعدد الأنماط والتصنيفات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { cairo: ['Cairo', 'sans-serif'] },
+                    colors: {
+                        darkBg: '#080b11', cardBg: '#121824', cardBorder: '#1e293b',
+                        accentBlue: '#3b82f6', accentGreen: '#10b981', accentRed: '#ef4444',
+                        accentOrange: '#f59e0b', accentPurple: '#8b5cf6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #080b11; color: #f3f4f6; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col custom-scrollbar">
+
+    <header class="bg-cardBg border-b border-cardBorder px-4 lg:px-6 py-3 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50 shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-tr from-accentBlue to-accentPurple text-white p-2.5 rounded-xl shadow-md">
+                <i class="fa-solid fa-brain-circuit text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-white leading-tight flex items-center gap-2">
+                    نظام السكالبينغ متعدد الأنماط والتصنيفات (OKX API)
+                    <span class="text-[10px] bg-accentPurple/25 text-accentPurple border border-accentPurple/40 px-2 py-0.5 rounded-full font-extrabold">توقيت الرياض نشط</span>
+                </h1>
+                <p class="text-xs text-gray-400">النمط العادي، أسرع الصفقات، وتصنيفات الأداء المتقدمة</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+            <button id="masterToggleBtn" onclick="toggleMasterSystem()" class="bg-accentRed hover:bg-red-600 text-white font-bold px-4 py-2 rounded-xl transition text-xs shadow-lg">
+                <i class="fa-solid fa-power-off"></i> <span id="masterToggleText">إيقاف النظام الكلي</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 p-3 lg:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 max-w-[1920px] mx-auto w-full">
+
+        <!-- LEFT COLUMN: Modes, Budgets & Classifications -->
+        <section class="lg:col-span-3 flex flex-col gap-4">
+            
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm space-y-4">
+                <h2 class="text-xs font-bold text-gray-200 flex items-center gap-1.5 border-b border-cardBorder pb-2">
+                    <i class="fa-solid fa-sliders text-accentBlue"></i> إدارة الأنماط والتصنيفات
+                </h2>
+                
+                <!-- Normal Mode & Classifications -->
+                <div class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-white">النمط العادي (ربح 0.30%+)</span>
+                        <button id="normalModeBtn" onclick="toggleMode('normal')" class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-500/30">مفعل</button>
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <span class="text-[10px] text-gray-400 block">تصنيف النمط العادي:</span>
+                        <select id="normalClassificationSelect" onchange="updateClassification()" class="w-full bg-cardBg border border-cardBorder rounded-lg px-2 py-1.5 text-xs text-white">
+                            <option value="none">بدون تصنيف (الوضع الأساسي)</option>
+                            <option value="most_profitable">الأكثر ربحاً</option>
+                            <option value="fastest">الأسرع</option>
+                            <option value="medium">المتوسط</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] text-gray-400">
+                        <span>ميزانية النمط:</span>
+                        <input type="number" id="normalBudgetInput" value="5000" onchange="updateBudgets()" class="w-20 bg-cardBg border border-cardBorder rounded px-2 py-1 text-white font-mono text-center">
+                    </div>
+                </div>
+
+                <!-- Fast Mode -->
+                <div class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-white">النمط السريع ⚡ (ربح 0.10%+)</span>
+                        <button id="fastModeBtn" onclick="toggleMode('fast')" class="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-lg text-xs font-bold border border-amber-500/30">معطل</button>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-gray-400">
+                        <span>ميزانية النمط:</span>
+                        <input type="number" id="fastBudgetInput" value="5000" onchange="updateBudgets()" class="w-20 bg-cardBg border border-cardBorder rounded px-2 py-1 text-white font-mono text-center">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm">
+                <div class="flex items-center justify-between mb-2.5 border-b border-cardBorder pb-2">
+                    <h2 class="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-wallet text-accentGreen"></i> محفظة OKX الحية
+                    </h2>
+                </div>
+                <div class="space-y-1.5 text-xs font-mono">
+                    <div class="flex justify-between items-center text-gray-400">
+                        <span>الرصيد الإجمالي:</span>
+                        <span id="okxBalanceDisplay" class="text-accentGreen font-bold">$10,000.00 USDT</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 flex-1 flex flex-col shadow-sm">
+                <h2 class="text-xs font-bold text-gray-200 flex items-center gap-1.5 mb-3">
+                    <i class="fa-solid fa-list-ul text-accentBlue"></i> الأسواق الحية
+                </h2>
+                <div id="coinsListContainer" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 max-h-[180px]"></div>
+            </div>
+        </section>
+
+        <!-- CENTER COLUMN: Charts & Tables with Riyadh Time Expectations -->
+        <section class="lg:col-span-9 flex flex-col gap-4">
+            
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm h-[380px] flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xs font-bold text-white flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-candlestick text-accentGreen"></i> الرسم البياني المباشر (TradingView)
+                    </h2>
+                    <span id="activeChartSymbol" class="bg-accentBlue/20 text-accentBlue px-2.5 py-0.5 rounded font-mono font-bold text-xs">OKX:BTCUSDT</span>
+                </div>
+                <div class="w-full flex-1 rounded-xl overflow-hidden bg-darkBg" id="tradingview_chart"></div>
+            </div>
+
+            <!-- TABLE 1: NORMAL MODE -->
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-accentGreen"></i> صفقات النمط العادي (الحد الأدنى للربح: 0.30%)
+                    </h2>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-right text-xs font-mono">
+                        <thead>
+                            <tr class="text-gray-400 border-b border-cardBorder bg-darkBg/60 text-[11px]">
+                                <th class="p-2.5">العملة</th>
+                                <th class="p-2.5">التصنيف والنوع</th>
+                                <th class="p-2.5">سعر الدخول</th>
+                                <th class="p-2.5">السعر الحالي</th>
+                                <th class="p-2.5">الهدف (TP)</th>
+                                <th class="p-2.5">الربح / الخسارة (PnL)</th>
+                                <th class="p-2.5 text-center">وقت الانتهاء المتوقع (الرياض)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="normalPositionsTable" class="divide-y divide-cardBorder/50 text-gray-200">
+                            <tr><td colspan="7" class="text-center py-4 text-gray-500 text-xs">النمط العادي ينتظر الفرص...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TABLE 2: FAST MODE (Flash Trades) -->
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm border-amber-500/30">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs font-bold text-amber-400 flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-amber-400"></i> قائمة أسرع الصفقات - النمط السريع ⚡ (ربح 0.10%)
+                    </h2>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-right text-xs font-mono">
+                        <thead>
+                            <tr class="text-gray-400 border-b border-cardBorder bg-darkBg/60 text-[11px]">
+                                <th class="p-2.5">العملة</th>
+                                <th class="p-2.5">النوع</th>
+                                <th class="p-2.5">سعر الدخول</th>
+                                <th class="p-2.5">السعر الحالي</th>
+                                <th class="p-2.5">الهدف الفوري (TP)</th>
+                                <th class="p-2.5">الربح / الخسارة (PnL)</th>
+                                <th class="p-2.5 text-center">وقت الانتهاء الفوري (الرياض)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fastPositionsTable" class="divide-y divide-cardBorder/50 text-gray-200">
+                            <tr><td colspan="7" class="text-center py-4 text-gray-500 text-xs">النمط السريع معطل...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        let activeSymbol = "BTC/USDT";
+        let isSystemActive = true;
+        let normalModeActive = true;
+        let fastModeActive = false;
+        let watchlistCoins = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"];
+
+        window.onload = function() {
+            initTradingViewWidget("OKX:BTCUSDT");
+            fetchBackendStateAndSync();
+            setInterval(fetchBackendStateAndSync, 2000);
+        };
+
+        async function fetchBackendStateAndSync() {
+            if (!isSystemActive) return;
+            try {
+                let res = await fetch('/api/state');
+                let data = await res.json();
+                
+                normalModeActive = data.normal_mode;
+                fastModeActive = data.fast_mode;
+                
+                updateModeUI('normal', normalModeActive);
+                updateModeUI('fast', fastModeActive);
+                
+                if (data.normal_classification) {
+                    document.getElementById('normalClassificationSelect').value = data.normal_classification;
+                }
+
+                if (data.balance && data.balance.total) {
+                    document.getElementById('okxBalanceDisplay').innerText = `$${formatPrice(data.balance.total)} USDT`;
+                }
+
+                // جدول النمط العادي مع وقت الانتهاء المتوقع بتوقيت الرياض
+                const normalTbody = document.getElementById('normalPositionsTable');
+                if (normalTbody && data.positions) {
+                    if (data.positions.length === 0) {
+                        normalTbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-gray-500 text-xs">لا توجد صفقات عادية حالياً...</td></tr>`;
+                    } else {
+                        normalTbody.innerHTML = "";
+                        data.positions.forEach(pos => {
+                            let tr = document.createElement('tr');
+                            tr.className = "hover:bg-darkBg/50 transition";
+                            tr.innerHTML = `
+                                <td class="p-2.5 font-bold">${pos.symbol}</td>
+                                <td class="p-2.5 text-emerald-400">${pos.type}</td>
+                                <td class="p-2.5">$${formatPrice(pos.entryPrice)}</td>
+                                <td class="p-2.5 text-blue-400">$${formatPrice(pos.currentPrice)}</td>
+                                <td class="p-2.5 text-emerald-400">$${formatPrice(pos.tp)}</td>
+                                <td class="p-2.5 font-bold ${pos.isProfit ? 'text-accentGreen' : 'text-accentRed'}">${pos.pnl}</td>
+                                <td class="p-2.5 text-center text-accentOrange text-xs font-bold">${pos.endTime || '--:--'}</td>
+                            `;
+                            normalTbody.appendChild(tr);
+                        });
+                    }
+                }
+
+                // جدول النمط السريع (أسرع الصفقات) مع وقت الانتهاء
+                const fastTbody = document.getElementById('fastPositionsTable');
+                if (fastTbody && data.fast_positions) {
+                    if (!fastModeActive) {
+                        fastTbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-amber-500/60 text-xs">النمط السريع غير مفعل حالياً.</td></tr>`;
+                    } else if (data.fast_positions.length === 0) {
+                        fastTbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-gray-500 text-xs">جاري رصد أسرع الصفقات الفورية...</td></tr>`;
+                    } else {
+                        fastTbody.innerHTML = "";
+                        data.fast_positions.forEach(pos => {
+                            let tr = document.createElement('tr');
+                            tr.className = "hover:bg-darkBg/50 transition bg-amber-500/5";
+                            tr.innerHTML = `
+                                <td class="p-2.5 font-bold">${pos.symbol}</td>
+                                <td class="p-2.5 text-amber-400">${pos.type}</td>
+                                <td class="p-2.5">$${formatPrice(pos.entryPrice)}</td>
+                                <td class="p-2.5 text-blue-400">$${formatPrice(pos.currentPrice)}</td>
+                                <td class="p-2.5 text-amber-400">$${formatPrice(pos.tp)}</td>
+                                <td class="p-2.5 font-bold ${pos.isProfit ? 'text-accentGreen' : 'text-accentRed'}">${pos.pnl}</td>
+                                <td class="p-2.5 text-center text-amber-400 text-xs font-bold">${pos.endTime || '--:--'}</td>
+                            `;
+                            fastTbody.appendChild(tr);
+                        });
+                    }
+                }
+
+                if (data.tickers) {
+                    renderCoinsList(data.tickers);
+                }
+            } catch (e) {}
+        }
+
+        async function toggleMode(mode) {
+            if (mode === 'normal') normalModeActive = !normalModeActive;
+            if (mode === 'fast') fastModeActive = !fastModeActive;
+            sendControlUpdate();
+        }
+
+        async function updateBudgets() {
+            sendControlUpdate();
+        }
+
+        async function updateClassification() {
+            sendControlUpdate();
+        }
+
+        async function sendControlUpdate() {
+            await fetch('/api/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    normal_mode: normalModeActive,
+                    fast_mode: fastModeActive,
+                    normal_budget: parseFloat(document.getElementById('normalBudgetInput').value),
+                    fast_budget: parseFloat(document.getElementById('fastBudgetInput').value),
+                    normal_classification: document.getElementById('normalClassificationSelect').value
+                })
+            });
+            fetchBackendStateAndSync();
+        }
+
+        function updateModeUI(mode, active) {
+            let btn = document.getElementById(mode + 'ModeBtn');
+            if (active) {
+                btn.className = "bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-500/30";
+                btn.innerText = "مفعل";
+            } else {
+                btn.className = "bg-red-500/20 text-red-400 px-3 py-1 rounded-lg text-xs font-bold border border-red-500/30";
+                btn.innerText = "معطل";
+            }
+        }
+
+        function renderCoinsList(tickers) {
+            const container = document.getElementById('coinsListContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            watchlistCoins.forEach(sym => {
+                let info = tickers[sym] || { price: 0, change: "+0.00%" };
+                let isSelected = sym === activeSymbol;
+                let card = document.createElement('div');
+                card.className = `p-2 rounded-xl border transition cursor-pointer flex items-center justify-between text-xs ${isSelected ? 'bg-accentBlue/15 border-accentBlue' : 'bg-darkBg border-cardBorder'}`;
+                card.onclick = () => {
+                    activeSymbol = sym;
+                    initTradingViewWidget("OKX:" + sym.replace('/', ''));
+                    document.getElementById('activeChartSymbol').innerText = "OKX:" + sym.replace('/', '');
+                };
+                card.innerHTML = `
+                    <span class="font-bold font-mono">${sym}</span>
+                    <span class="font-mono text-emerald-400">${info.price > 0 ? '$' + formatPrice(info.price) : '--'}</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function initTradingViewWidget(tvSymbol) {
+            document.getElementById('tradingview_chart').innerHTML = '';
+            new TradingView.widget({
+                "autosize": true, "symbol": tvSymbol, "interval": "1",
+                "timezone": "Asia/Riyadh", "theme": "dark", "style": "1",
+                "locale": "ar", "toolbar_bg": "#121824", "enable_publishing": false,
+                "container_id": "tradingview_chart"            });
+        }
+
+        function toggleMasterSystem() {
+            isSystemActive = !isSystemActive;
+            fetch('/api/control', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({is_running: isSystemActive})
+            });
+            let btn = document.getElementById('masterToggleBtn');
+            let text = document.getElementById('masterToggleText');
+            if (isSystemActive) {
+                btn.className = "bg-accentRed hover:bg-red-600 text-white font-bold px-4 py-2 rounded-xl transition text-xs shadow-lg";
+                text.innerText = "إيقاف النظام الكلي";
+            } else {
+                btn.className = "bg-accentGreen hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl transition text-xs shadow-lg";
+                text.innerText = "استئناف النظام";
+            }
+        }
+
+        function formatPrice(val) {
+            let num = parseFloat(val);
+            if (isNaN(num)) return "0.00";
+            return num >= 100 ? num.toFixed(2) : num.toFixed(4);
+        }
+    </script>
+</body>
+</html>
