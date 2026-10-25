@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام السكالبينغ المتقدم - تحليل أفضل 100 عملة</title>
+    <title>نظام السكالبينغ المتقدم - OKX API</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -29,17 +29,18 @@
 </head>
 <body class="min-h-screen flex flex-col custom-scrollbar">
 
+    <!-- Header -->
     <header class="bg-cardBg border-b border-cardBorder px-4 lg:px-6 py-3 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50 shadow-lg">
         <div class="flex items-center gap-3">
             <div class="bg-gradient-to-tr from-accentBlue to-accentPurple text-white p-2.5 rounded-xl shadow-md">
-                <i class="fa-solid fa-brain-circuit text-2xl"></i>
+                <i class="fa-solid fa-shield-cat text-2xl"></i>
             </div>
             <div>
                 <h1 class="text-lg font-bold text-white leading-tight flex items-center gap-2">
-                    نظام السكالبينغ الذكي المربوط بدراسة 100 عملة
-                    <span class="text-[10px] bg-accentPurple/25 text-accentPurple border border-accentPurple/40 px-2 py-0.5 rounded-full font-extrabold">منع التوقيت الخاطئ</span>
+                    نظام السكالبينغ المتقدم (OKX API)
+                    <span id="marketStatusBadge" class="text-[10px] bg-emerald-500/25 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded-full font-extrabold">السوق مناسب للتداول 🟢</span>
                 </h1>
-                <p class="text-xs text-gray-400">بوت التحليل الشامل يدرس السوق ويرتب أفضل 3 عملات صاعدة قبل التنفيذ</p>
+                <p class="text-xs text-gray-400">بوت مراقبة المناسبة، تحليل 100 عملة، وصمام أمان لحماية رأس المال وسجل الصفقات</p>
             </div>
         </div>
 
@@ -52,57 +53,52 @@
 
     <main class="flex-1 p-3 lg:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 max-w-[1920px] mx-auto w-full">
 
-        <!-- LEFT COLUMN: Controls -->
+        <!-- LEFT COLUMN: Controls & Risk Management -->
         <section class="lg:col-span-3 flex flex-col gap-4">
             
             <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm space-y-4">
                 <h2 class="text-xs font-bold text-gray-200 flex items-center gap-1.5 border-b border-cardBorder pb-2">
-                    <i class="fa-solid fa-sliders text-accentBlue"></i> إعدادات بوت التحليل والتنفيذ
+                    <i class="fa-solid fa-shield-halved text-accentGreen"></i> صمام الأمان وإدارة المخاطر
                 </h2>
                 
+                <!-- Market Guardian Toggle -->
                 <div class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-2">
-                    <span class="text-xs font-bold text-white block">طريقة اختيار العملات:</span>
-                    <select id="operationModeSelect" onchange="updateSettings()" class="w-full bg-cardBg border border-cardBorder rounded-lg px-2 py-2 text-xs text-white font-bold">
-                        <option value="auto">تلقائي (دراسة أفضل 100 عملة واختيار الأقوى)</option>
-                        <option value="custom">مخصص (اختيار العملات يدوياً)</option>
-                    </select>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-white">بوت مراقبة حالة السوق</span>
+                        <button id="guardianBtn" onclick="toggleGuardian()" class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-500/30">مفعل</button>
+                    </div>
+                    <p class="text-[10px] text-gray-400">يوقف الصفقات تلقائياً إذا كان السوق عرضياً أو غير مناسب للسكالبينغ.</p>
                 </div>
 
-                <div id="customCoinsContainer" class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-2 hidden">
-                    <span class="text-xs font-bold text-accentOrange block">أدخل العملات المخصصة (بينها فاصلة):</span>
-                    <input type="text" id="customCoinsInput" value="BTC/USDT, ETH/USDT" class="w-full bg-cardBg border border-cardBorder rounded px-2 py-1.5 text-xs text-white font-mono">
-                    <button onclick="updateSettings()" class="w-full bg-accentBlue text-white font-bold py-1.5 rounded text-xs">حفظ العملات</button>
+                <!-- Max Loss Trades Limit -->
+                <div class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-gray-300 font-bold">حد صفقات الخسارة المسموحة:</span>
+                        <input type="number" id="maxLossTradesInput" value="3" min="1" max="10" onchange="updateSettings()" class="w-16 bg-cardBg border border-cardBorder rounded px-2 py-1 text-white font-mono text-center">
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-red-400">
+                        <span>صفقات الخسارة اليومية الحالية:</span>
+                        <span id="currentLossCountDisplay" class="font-bold font-mono">0</span>
+                    </div>
                 </div>
 
+                <!-- Trade Settings -->
                 <div class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-3">
                     <div class="flex items-center justify-between text-xs">
                         <span class="text-gray-300">ميزانية الصفقة (USDT):</span>
                         <input type="number" id="tradeBudgetInput" value="20" onchange="updateSettings()" class="w-20 bg-cardBg border border-cardBorder rounded px-2 py-1 text-white font-mono text-center">
                     </div>
                     <div class="flex items-center justify-between text-xs">
-                        <span class="text-gray-300">عدد الصفقات الأقصى:</span>
+                        <span class="text-gray-300">أقصى صفقات متزامنة:</span>
                         <input type="number" id="maxPositionsInput" value="3" onchange="updateSettings()" class="w-20 bg-cardBg border border-cardBorder rounded px-2 py-1 text-white font-mono text-center">
                     </div>
-                </div>
-
-                <div class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-white">النمط العادي (ربح 0.30%+)</span>
-                        <button id="normalModeBtn" onclick="toggleMode('normal')" class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-500/30">مفعل</button>
-                    </div>
-                    <select id="normalClassificationSelect" onchange="updateSettings()" class="w-full bg-cardBg border border-cardBorder rounded-lg px-2 py-1.5 text-xs text-white">
-                        <option value="none">بدون تصنيف (الوضع الأساسي)</option>
-                        <option value="most_profitable">الأكثر ربحاً</option>
-                        <option value="fastest">الأسرع</option>
-                        <option value="medium">المتوسط</option>
-                    </select>
                 </div>
             </div>
 
             <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm">
                 <div class="flex items-center justify-between mb-2.5 border-b border-cardBorder pb-2">
                     <h2 class="text-xs font-bold text-gray-200 flex items-center gap-1.5">
-                        <i class="fa-solid fa-wallet text-accentGreen"></i> رصيد OKX الحقيقي
+                        <i class="fa-solid fa-wallet text-accentGreen"></i> رصيد محفظة OKX التجريبي
                     </h2>
                 </div>
                 <div class="space-y-1.5 text-xs font-mono">
@@ -114,37 +110,42 @@
             </div>
         </section>
 
-        <!-- CENTER COLUMN: Top 3 Analysis & Top 100 Market Table -->
+        <!-- CENTER COLUMN: Analytics, Active Positions & History Logs -->
         <section class="lg:col-span-9 flex flex-col gap-4">
             
+            <!-- Lock Reason Alert Box -->
+            <div id="lockAlertBox" class="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-xs text-red-400 hidden flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                <span id="lockReasonText">تم إيقاف النظام مؤقتاً لحماية المحفظة.</span>
+            </div>
+
             <!-- Analysis Report & Top 3 Coins -->
             <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm space-y-3">
                 <div class="flex items-center justify-between border-b border-cardBorder pb-2">
                     <h2 class="text-xs font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles text-accentBlue"></i> تقرير بوت التحليل الشامل (أفضل 3 عملات صاعدة ومستقرة)
+                        <i class="fa-solid fa-wand-magic-sparkles text-accentBlue"></i> تقرير بوت التحليل الشامل (ترتيب أفضل 3 عملات صاعدة ومستقرة)
                     </h2>
+                    <span id="analysisReasonBadge" class="text-[10px] text-gray-400">فحص تلقائي لمئات العملات</span>
                 </div>
-                <div id="top3Container" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                    <!-- Populated dynamically -->
-                </div>
+                <div id="top3Container" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs"></div>
             </div>
 
-            <!-- TradingView Chart -->
-            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm h-[320px] flex flex-col">
+            <!-- TradingView Chart Widget -->
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm h-[300px] flex flex-col">
                 <div class="flex items-center justify-between mb-2">
                     <h2 class="text-xs font-bold text-white flex items-center gap-1.5">
-                        <i class="fa-solid fa-chart-candlestick text-accentGreen"></i> الرسم البياني (TradingView)
+                        <i class="fa-solid fa-chart-candlestick text-accentGreen"></i> الرسم البياني المباشر (TradingView)
                     </h2>
                     <span id="activeChartSymbol" class="bg-accentBlue/20 text-accentBlue px-2.5 py-0.5 rounded font-mono font-bold text-xs">OKX:BTCUSDT</span>
                 </div>
                 <div class="w-full flex-1 rounded-xl overflow-hidden bg-darkBg" id="tradingview_chart"></div>
             </div>
 
-            <!-- TABLE: ACTIVE POSITIONS -->
+            <!-- TABLE 1: ACTIVE POSITIONS -->
             <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-xs font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-shield-halved text-accentGreen"></i> الصفقات المنفذة أوتوماتيكياً (بعد دراسة التحليل الشامل)
+                        <i class="fa-solid fa-shield-halved text-accentGreen"></i> الصفقات المنفذة أوتوماتيكياً (تحت حماية بوت المراقبة)
                     </h2>
                 </div>
                 <div class="overflow-x-auto custom-scrollbar">
@@ -152,44 +153,103 @@
                         <thead>
                             <tr class="text-gray-400 border-b border-cardBorder bg-darkBg/60 text-[11px]">
                                 <th class="p-2.5">العملة</th>
-                                <th class="p-2.5">التصنيف</th>
+                                <th class="p-2.5">نوع الصفقة</th>
                                 <th class="p-2.5">سعر الدخول</th>
                                 <th class="p-2.5">السعر الحالي</th>
                                 <th class="p-2.5">الهدف (TP)</th>
                                 <th class="p-2.5">وقف الخسارة (SL)</th>
                                 <th class="p-2.5">PnL</th>
-                                <th class="p-2.5 text-center">الرياض</th>
+                                <th class="p-2.5 text-center">الانتهاء (الرياض)</th>
                                 <th class="p-2.5 text-center">إيقاف / إغلاق</th>
                             </tr>
                         </thead>
-                        <tbody id="normalPositionsTable" class="divide-y divide-cardBorder/50 text-gray-200">
-                            <tr><td colspan="9" class="text-center py-4 text-gray-500 text-xs">بوت التحليل يفحص 100 عملة الآن لاختيار التوقيت والعملة المناسبة...</td></tr>
+                        <tbody id="positionsTableBody" class="divide-y divide-cardBorder/50 text-gray-200">
+                            <tr><td colspan="9" class="text-center py-4 text-gray-500 text-xs">جاري فحص السوق وفتح الصفقات الآمنة...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- TABLE: TOP 100 MARKET ANALYSIS TABLE -->
+            <!-- SECTION: CLOSED TRADES HISTORY (WINNERS & LOSERS) -->
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-cardBorder pb-2">
+                    <h2 class="text-xs font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-accentPurple"></i> سجل الصفقات المنتهية (الأرشيف)
+                    </h2>
+                    <div class="flex gap-2">
+                        <span class="bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded text-[10px] font-bold">الرابحة: <span id="winCount">0</span></span>
+                        <span class="bg-red-500/20 text-red-400 px-2.5 py-0.5 rounded text-[10px] font-bold">الخاسرة: <span id="lossCount">0</span></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- WINNING TRADES SUB-SECTION -->
+                    <div class="bg-darkBg p-3 rounded-xl border border-emerald-500/30">
+                        <h3 class="text-xs font-bold text-emerald-400 mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check"></i> الصفقات الرابحة 🟢
+                        </h3>
+                        <div class="overflow-x-auto custom-scrollbar max-h-[200px]">
+                            <table class="w-full text-right text-xs font-mono">
+                                <thead>
+                                    <tr class="text-gray-400 border-b border-cardBorder text-[10px]">
+                                        <th class="p-2">العملة</th>
+                                        <th class="p-2">الدخول</th>
+                                        <th class="p-2">الخروج</th>
+                                        <th class="p-2 text-center">الربح المحقق</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="winningHistoryBody" class="divide-y divide-cardBorder/30 text-gray-200">
+                                    <tr><td colspan="4" class="text-center py-3 text-gray-500 text-[11px]">لا توجد صفقات رابحة مسجلة...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- LOSING TRADES SUB-SECTION -->
+                    <div class="bg-darkBg p-3 rounded-xl border border-red-500/30">
+                        <h3 class="text-xs font-bold text-red-400 mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-xmark"></i> الصفقات الخاسرة 🔴
+                        </h3>
+                        <div class="overflow-x-auto custom-scrollbar max-h-[200px]">
+                            <table class="w-full text-right text-xs font-mono">
+                                <thead>
+                                    <tr class="text-gray-400 border-b border-cardBorder text-[10px]">
+                                        <th class="p-2">العملة</th>
+                                        <th class="p-2">الدخول</th>
+                                        <th class="p-2">الخروج</th>
+                                        <th class="p-2 text-center">الخسارة المحققة</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="losingHistoryBody" class="divide-y divide-cardBorder/30 text-gray-200">
+                                    <tr><td colspan="4" class="text-center py-3 text-gray-500 text-[11px]">لا توجد صفقات خاسرة مسجلة...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLE 2: TOP 100 MARKET ANALYSIS -->
             <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-xs font-bold text-white flex items-center gap-2">
                         <i class="fa-solid fa-list-ol text-accentPurple"></i> جدول دراسة وتحليل أفضل 100 عملة رقمية (حسب الاستقرار والصعود)
                     </h2>
                 </div>
-                <div class="overflow-x-auto custom-scrollbar max-h-[300px]">
+                <div class="overflow-x-auto custom-scrollbar max-h-[220px]">
                     <table class="w-full text-right text-xs font-mono">
                         <thead>
-                            <tr class="text-gray-400 border-b border-cardBorder bg-darkBg/60 text-[11px] sticky top-0">
+                            <tr class="text-gray-400 border-b border-cardBorder bg-darkBg/60 text-[11px] sticky top-0 bg-cardBg">
                                 <th class="p-2.5">#</th>
                                 <th class="p-2.5">العملة</th>
                                 <th class="p-2.5">السعر الحالي</th>
                                 <th class="p-2.5">التغير 24h</th>
-                                <th class="p-2.5">السيولة والحجم</th>
+                                <th class="p-2.5">السيولة (USDT)</th>
                                 <th class="p-2.5 text-center">حالة الاستقرار والصعود</th>
                             </tr>
                         </thead>
                         <tbody id="top100TableBody" class="divide-y divide-cardBorder/50 text-gray-200">
-                            <tr><td colspan="6" class="text-center py-4 text-gray-500 text-xs">جاري فحص وترتيب الـ 100 عملة...</td></tr>
+                            <!-- Dynamic rendering -->
                         </tbody>
                     </table>
                 </div>
@@ -201,7 +261,7 @@
     <script>
         let activeSymbol = "BTC/USDT";
         let isSystemActive = true;
-        let normalModeActive = true;
+        let guardianActive = true;
 
         window.onload = function() {
             initTradingViewWidget("OKX:BTCUSDT");
@@ -215,28 +275,38 @@
                 let res = await fetch('/api/state');
                 let data = await res.json();
                 
-                normalModeActive = data.normal_mode;
-                updateModeUI('normal', normalModeActive);
+                guardianActive = data.guardian_active;
+                updateGuardianUI(guardianActive);
 
-                document.getElementById('operationModeSelect').value = data.mode;
-                const customContainer = document.getElementById('customCoinsContainer');
-                if (data.mode === 'custom') {
-                    customContainer.classList.remove('hidden');
-                } else {
-                    customContainer.classList.add('hidden');
-                }
-
+                document.getElementById('maxLossTradesInput').value = data.max_loss_trades;
+                document.getElementById('currentLossCountDisplay').innerText = data.today_loss_count;
                 document.getElementById('tradeBudgetInput').value = data.trade_budget;
                 document.getElementById('maxPositionsInput').value = data.max_positions;
-                document.getElementById('normalClassificationSelect').value = data.normal_classification;
 
-                // عرض أفضل 3 عملات حللها بوت التحليل
+                const badge = document.getElementById('marketStatusBadge');
+                if (data.market_suitable) {
+                    badge.className = "text-[10px] bg-emerald-500/25 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded-full font-extrabold";
+                    badge.innerText = "السوق مناسب للتداول 🟢";
+                } else {
+                    badge.className = "text-[10px] bg-amber-500/25 text-amber-400 border border-amber-500/40 px-2 py-0.5 rounded-full font-extrabold";
+                    badge.innerText = "السوق عرضي - تم تعليق الصفقات 🟡";
+                }
+
+                const alertBox = document.getElementById('lockAlertBox');
+                if (data.lock_reason) {
+                    alertBox.classList.remove('hidden');
+                    document.getElementById('lockReasonText').innerText = data.lock_reason;
+                } else {
+                    alertBox.classList.add('hidden');
+                }
+
+                // عرض أفضل 3 عملات
                 if (data.analysis_report && data.analysis_report.top_3) {
                     const top3El = document.getElementById('top3Container');
                     top3El.innerHTML = "";
                     data.analysis_report.top_3.forEach((coin, idx) => {
                         let div = document.createElement('div');
-                        div.className = "bg-darkBg p-3 rounded-xl border border-accentBlue/30 flex items-center justify-between cursor-pointer";
+                        div.className = "bg-darkBg p-3 rounded-xl border border-accentBlue/30 flex items-center justify-between cursor-pointer hover:border-accentBlue transition";
                         div.onclick = () => {
                             activeSymbol = coin.symbol;
                             initTradingViewWidget("OKX:" + coin.symbol.replace('/',''));
@@ -249,14 +319,14 @@
                             </div>
                             <div class="text-left font-mono">
                                 <span class="text-xs font-bold text-white block">$${formatPrice(coin.price)}</span>
-                                <span class="text-[10px] text-accentGreen font-bold">${coin.change}</span>
+                                <span class="text-[10px] text-accentGreen font-bold">+${coin.change.toFixed(2)}%</span>
                             </div>
                         `;
                         top3El.appendChild(div);
                     });
                 }
 
-                // عرض جدول أفضل 100 عملة محللة
+                // جدول أفضل 100 عملة
                 if (data.top_100_market) {
                     const t100Body = document.getElementById('top100TableBody');
                     t100Body.innerHTML = "";
@@ -273,7 +343,7 @@
                             <td class="p-2.5 font-bold text-white">${item.symbol}</td>
                             <td class="p-2.5 text-blue-400">$${formatPrice(item.price)}</td>
                             <td class="p-2.5 font-bold ${item.change >= 0 ? 'text-accentGreen' : 'text-accentRed'}">${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%</td>
-                            <td class="p-2.5 text-gray-300">$${(item.volume / 1000).toFixed(1)}K</td>
+                            <td class="p-2.5 text-gray-300">$${(item.volume / 1000).toFixed(0)}K</td>
                             <td class="p-2.5 text-center font-bold text-emerald-400">${item.status}</td>
                         `;
                         t100Body.appendChild(tr);
@@ -284,18 +354,19 @@
                     document.getElementById('okxBalanceDisplay').innerText = `$${formatPrice(data.balance.total)} USDT`;
                 }
 
-                const normalTbody = document.getElementById('normalPositionsTable');
+                // الصفقات النشطة
+                const normalTbody = document.getElementById('positionsTableBody');
                 if (normalTbody && data.positions) {
                     if (data.positions.length === 0) {
-                        normalTbody.innerHTML = `<tr><td colspan="9" class="text-center py-3 text-gray-500 text-xs">لا توجد صفقات مفتوحة. بوت التحليل يدرس السوق بدقة لمنع التوقيت الخاطئ...</td></tr>`;
+                        normalTbody.innerHTML = `<tr><td colspan="9" class="text-center py-3 text-gray-500 text-xs">لا توجد صفقات مفتوحة. بوت المراقبة يمنع التوقيت الخاطئ...</td></tr>`;
                     } else {
                         normalTbody.innerHTML = "";
                         data.positions.forEach(pos => {
                             let tr = document.createElement('tr');
                             tr.className = "hover:bg-darkBg/50 transition";
                             tr.innerHTML = `
-                                <td class="p-2.5 font-bold">${pos.symbol}</td>
-                                <td class="p-2.5 text-emerald-400">${pos.type}</td>
+                                <td class="p-2.5 font-bold text-white">${pos.symbol}</td>
+                                <td class="p-2.5 text-emerald-400 text-[11px]">${pos.type}</td>
                                 <td class="p-2.5">$${formatPrice(pos.entryPrice)}</td>
                                 <td class="p-2.5 text-blue-400">$${formatPrice(pos.currentPrice)}</td>
                                 <td class="p-2.5 text-emerald-400">$${formatPrice(pos.tp)}</td>
@@ -312,6 +383,11 @@
                         });
                     }
                 }
+
+                // سجل الصفقات المنتهية (الأرشيف)
+                if (data.closed_history) {
+                    renderHistory(data.closed_history);
+                }
             } catch (e) {}
         }
 
@@ -324,8 +400,51 @@
             fetchBackendStateAndSync();
         }
 
-        async function toggleMode(mode) {
-            normalModeActive = !normalModeActive;
+        function renderHistory(historyList) {
+            let winBody = document.getElementById('winningHistoryBody');
+            let lossBody = document.getElementById('losingHistoryBody');
+            
+            let wins = historyList.filter(h => h.isWin);
+            let losses = historyList.filter(h => !h.isWin);
+
+            document.getElementById('winCount').innerText = wins.length;
+            document.getElementById('lossCount').innerText = losses.length;
+
+            if (wins.length === 0) {
+                winBody.innerHTML = `<tr><td colspan="4" class="text-center py-3 text-gray-500 text-[11px]">لا توجد صفقات رابحة مسجلة...</td></tr>`;
+            } else {
+                winBody.innerHTML = "";
+                wins.forEach(w => {
+                    winBody.innerHTML += `
+                        <tr class="hover:bg-darkBg/40">
+                            <td class="p-2 font-bold text-white">${w.symbol}</td>
+                            <td class="p-2">$${formatPrice(w.entry)}</td>
+                            <td class="p-2 text-blue-400">$${formatPrice(w.exit)}</td>
+                            <td class="p-2 text-center font-bold text-accentGreen">${w.pnlText}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            if (losses.length === 0) {
+                lossBody.innerHTML = `<tr><td colspan="4" class="text-center py-3 text-gray-500 text-[11px]">لا توجد صفقات خاسرة مسجلة...</td></tr>`;
+            } else {
+                lossBody.innerHTML = "";
+                losses.forEach(l => {
+                    lossBody.innerHTML += `
+                        <tr class="hover:bg-darkBg/40">
+                            <td class="p-2 font-bold text-white">${l.symbol}</td>
+                            <td class="p-2">$${formatPrice(l.entry)}</td>
+                            <td class="p-2 text-blue-400">$${formatPrice(l.exit)}</td>
+                            <td class="p-2 text-center font-bold text-accentRed">${l.pnlText}</td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        async function toggleGuardian() {
+            guardianActive = !guardianActive;
             sendSettingsUpdate();
         }
 
@@ -334,26 +453,21 @@
         }
 
         async function sendSettingsUpdate() {
-            let customRaw = document.getElementById('customCoinsInput').value;
-            let customArr = customRaw.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
-
             await fetch('/api/control', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    mode: document.getElementById('operationModeSelect').value,
-                    custom_symbols: customArr.length > 0 ? customArr : ["BTC/USDT"],
+                    guardian_active: guardianActive,
+                    max_loss_trades: parseInt(document.getElementById('maxLossTradesInput').value) || 3,
                     trade_budget: parseFloat(document.getElementById('tradeBudgetInput').value) || 20,
-                    max_positions: parseInt(document.getElementById('maxPositionsInput').value) || 3,
-                    normal_mode: normalModeActive,
-                    normal_classification: document.getElementById('normalClassificationSelectSelect') ? document.getElementById('normalClassificationSelectSelect').value : document.getElementById('normalClassificationSelect').value
+                    max_positions: parseInt(document.getElementById('maxPositionsInput').value) || 3
                 })
             });
             fetchBackendStateAndSync();
         }
 
-        function updateModeUI(mode, active) {
-            let btn = document.getElementById(mode + 'ModeBtn');
+        function updateGuardianUI(active) {
+            let btn = document.getElementById('guardianBtn');
             if (active) {
                 btn.className = "bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-500/30";
                 btn.innerText = "مفعل";
