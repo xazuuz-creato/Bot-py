@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام السكالبينغ المتقدم - بوت التحليل الشامل</title>
+    <title>نظام السكالبينغ المتقدم - تحليل أفضل 100 عملة</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -36,10 +36,10 @@
             </div>
             <div>
                 <h1 class="text-lg font-bold text-white leading-tight flex items-center gap-2">
-                    نظام السكالبينغ المربوط ببوت التحليل الشامل
-                    <span class="text-[10px] bg-accentPurple/25 text-accentPurple border border-accentPurple/40 px-2 py-0.5 rounded-full font-extrabold">مسح مئات العملات</span>
+                    نظام السكالبينغ الذكي المربوط بدراسة 100 عملة
+                    <span class="text-[10px] bg-accentPurple/25 text-accentPurple border border-accentPurple/40 px-2 py-0.5 rounded-full font-extrabold">منع التوقيت الخاطئ</span>
                 </h1>
-                <p class="text-xs text-gray-400">التحكم بالوضع التلقائي (عبر التحليل) أو المخصص، مع ميزانية الصفقات</p>
+                <p class="text-xs text-gray-400">بوت التحليل الشامل يدرس السوق ويرتب أفضل 3 عملات صاعدة قبل التنفيذ</p>
             </div>
         </div>
 
@@ -52,7 +52,7 @@
 
     <main class="flex-1 p-3 lg:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 max-w-[1920px] mx-auto w-full">
 
-        <!-- LEFT COLUMN: Mode & Budget Controls -->
+        <!-- LEFT COLUMN: Controls -->
         <section class="lg:col-span-3 flex flex-col gap-4">
             
             <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm space-y-4">
@@ -60,23 +60,20 @@
                     <i class="fa-solid fa-sliders text-accentBlue"></i> إعدادات بوت التحليل والتنفيذ
                 </h2>
                 
-                <!-- Operation Mode Selection -->
                 <div class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-2">
-                    <span class="text-xs font-bold text-white block">طريقة عمل البوتات:</span>
+                    <span class="text-xs font-bold text-white block">طريقة اختيار العملات:</span>
                     <select id="operationModeSelect" onchange="updateSettings()" class="w-full bg-cardBg border border-cardBorder rounded-lg px-2 py-2 text-xs text-white font-bold">
-                        <option value="auto">وضع تلقائي (عبر بوت التحليل الشامل)</option>
-                        <option value="custom">وضع مخصص (اختيار العملات يدوياً)</option>
+                        <option value="auto">تلقائي (دراسة أفضل 100 عملة واختيار الأقوى)</option>
+                        <option value="custom">مخصص (اختيار العملات يدوياً)</option>
                     </select>
                 </div>
 
-                <!-- Custom Coins Selector (Visible only in Custom Mode) -->
                 <div id="customCoinsContainer" class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-2 hidden">
-                    <span class="text-xs font-bold text-accentOrange block">اختر العملات المخصصة (مفصول بفاصلة):</span>
-                    <input type="text" id="customCoinsInput" value="BTC/USDT, ETH/USDT, SOL/USDT" class="w-full bg-cardBg border border-cardBorder rounded px-2 py-1.5 text-xs text-white font-mono" placeholder="مثال: BTC/USDT, ETH/USDT">
-                    <button onclick="updateSettings()" class="w-full bg-accentBlue text-white font-bold py-1.5 rounded text-xs">حفظ العملات المخصصة</button>
+                    <span class="text-xs font-bold text-accentOrange block">أدخل العملات المخصصة (بينها فاصلة):</span>
+                    <input type="text" id="customCoinsInput" value="BTC/USDT, ETH/USDT" class="w-full bg-cardBg border border-cardBorder rounded px-2 py-1.5 text-xs text-white font-mono">
+                    <button onclick="updateSettings()" class="w-full bg-accentBlue text-white font-bold py-1.5 rounded text-xs">حفظ العملات</button>
                 </div>
 
-                <!-- Budget & Max Positions -->
                 <div class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-3">
                     <div class="flex items-center justify-between text-xs">
                         <span class="text-gray-300">ميزانية الصفقة (USDT):</span>
@@ -88,7 +85,6 @@
                     </div>
                 </div>
 
-                <!-- Normal Mode & Classifications -->
                 <div class="bg-darkBg p-3 rounded-xl border border-cardBorder space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-white">النمط العادي (ربح 0.30%+)</span>
@@ -118,37 +114,26 @@
             </div>
         </section>
 
-        <!-- CENTER COLUMN: Comprehensive Analysis Report & Active Positions -->
+        <!-- CENTER COLUMN: Top 3 Analysis & Top 100 Market Table -->
         <section class="lg:col-span-9 flex flex-col gap-4">
             
-            <!-- AI Comprehensive Analysis Report Widget -->
-            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm">
-                <div class="flex items-center justify-between border-b border-cardBorder pb-2 mb-3">
+            <!-- Analysis Report & Top 3 Coins -->
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm space-y-3">
+                <div class="flex items-center justify-between border-b border-cardBorder pb-2">
                     <h2 class="text-xs font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles text-accentBlue"></i> تقرير بوت التحليل الشامل (اختيار أفضل العملات)
+                        <i class="fa-solid fa-wand-magic-sparkles text-accentBlue"></i> تقرير بوت التحليل الشامل (أفضل 3 عملات صاعدة ومستقرة)
                     </h2>
-                    <span id="analysisModeBadge" class="text-[10px] bg-accentBlue/20 text-accentBlue px-2 py-0.5 rounded font-bold">وضع تلقائي نشط</span>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                    <div class="bg-darkBg p-3 rounded-xl border border-cardBorder">
-                        <span class="text-gray-400 text-[10px] block">العملة الأفضل المقترحة:</span>
-                        <span id="reportBestCoin" class="text-sm font-black text-emerald-400 font-mono">جاري المسح...</span>
-                    </div>
-                    <div class="bg-darkBg p-3 rounded-xl border border-cardBorder">
-                        <span class="text-gray-400 text-[10px] block">درجة الثقة:</span>
-                        <span id="reportConfidence" class="text-sm font-black text-accentBlue font-mono">--</span>
-                    </div>
-                    <div class="bg-darkBg p-3 rounded-xl border border-cardBorder md:col-span-1">
-                        <span class="text-gray-400 text-[10px] block">سبب الاختيار:</span>
-                        <span id="reportReason" class="text-[11px] text-gray-300">بوت التحليل يفحص مئات العملات الآن...</span>
-                    </div>
+                <div id="top3Container" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                    <!-- Populated dynamically -->
                 </div>
             </div>
 
+            <!-- TradingView Chart -->
             <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm h-[320px] flex flex-col">
                 <div class="flex items-center justify-between mb-2">
                     <h2 class="text-xs font-bold text-white flex items-center gap-1.5">
-                        <i class="fa-solid fa-chart-candlestick text-accentGreen"></i> الرسم البياني المباشر (TradingView)
+                        <i class="fa-solid fa-chart-candlestick text-accentGreen"></i> الرسم البياني (TradingView)
                     </h2>
                     <span id="activeChartSymbol" class="bg-accentBlue/20 text-accentBlue px-2.5 py-0.5 rounded font-mono font-bold text-xs">OKX:BTCUSDT</span>
                 </div>
@@ -159,7 +144,7 @@
             <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-xs font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-shield-halved text-accentGreen"></i> الصفقات المنفذة أوتوماتيكياً (بناءً على توصية بوت التحليل الشامل)
+                        <i class="fa-solid fa-shield-halved text-accentGreen"></i> الصفقات المنفذة أوتوماتيكياً (بعد دراسة التحليل الشامل)
                     </h2>
                 </div>
                 <div class="overflow-x-auto custom-scrollbar">
@@ -167,7 +152,7 @@
                         <thead>
                             <tr class="text-gray-400 border-b border-cardBorder bg-darkBg/60 text-[11px]">
                                 <th class="p-2.5">العملة</th>
-                                <th class="p-2.5">التصنيف والنوع</th>
+                                <th class="p-2.5">التصنيف</th>
                                 <th class="p-2.5">سعر الدخول</th>
                                 <th class="p-2.5">السعر الحالي</th>
                                 <th class="p-2.5">الهدف (TP)</th>
@@ -178,7 +163,33 @@
                             </tr>
                         </thead>
                         <tbody id="normalPositionsTable" class="divide-y divide-cardBorder/50 text-gray-200">
-                            <tr><td colspan="9" class="text-center py-4 text-gray-500 text-xs">بانتظار نتائج بوت التحليل الشامل لفتح الصفقات...</td></tr>
+                            <tr><td colspan="9" class="text-center py-4 text-gray-500 text-xs">بوت التحليل يفحص 100 عملة الآن لاختيار التوقيت والعملة المناسبة...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TABLE: TOP 100 MARKET ANALYSIS TABLE -->
+            <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list-ol text-accentPurple"></i> جدول دراسة وتحليل أفضل 100 عملة رقمية (حسب الاستقرار والصعود)
+                    </h2>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar max-h-[300px]">
+                    <table class="w-full text-right text-xs font-mono">
+                        <thead>
+                            <tr class="text-gray-400 border-b border-cardBorder bg-darkBg/60 text-[11px] sticky top-0">
+                                <th class="p-2.5">#</th>
+                                <th class="p-2.5">العملة</th>
+                                <th class="p-2.5">السعر الحالي</th>
+                                <th class="p-2.5">التغير 24h</th>
+                                <th class="p-2.5">السيولة والحجم</th>
+                                <th class="p-2.5 text-center">حالة الاستقرار والصعود</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top100TableBody" class="divide-y divide-cardBorder/50 text-gray-200">
+                            <tr><td colspan="6" class="text-center py-4 text-gray-500 text-xs">جاري فحص وترتيب الـ 100 عملة...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -195,7 +206,7 @@
         window.onload = function() {
             initTradingViewWidget("OKX:BTCUSDT");
             fetchBackendStateAndSync();
-            setInterval(fetchBackendStateAndSync, 2000);
+            setInterval(fetchBackendStateAndSync, 3000);
         };
 
         async function fetchBackendStateAndSync() {
@@ -208,8 +219,6 @@
                 updateModeUI('normal', normalModeActive);
 
                 document.getElementById('operationModeSelect').value = data.mode;
-                document.getElementById('analysisModeBadge').innerText = data.mode === 'auto' ? 'وضع تلقائي نشط' : 'وضع مخصص نشط';
-                
                 const customContainer = document.getElementById('customCoinsContainer');
                 if (data.mode === 'custom') {
                     customContainer.classList.remove('hidden');
@@ -221,10 +230,54 @@
                 document.getElementById('maxPositionsInput').value = data.max_positions;
                 document.getElementById('normalClassificationSelect').value = data.normal_classification;
 
-                if (data.analysis_report) {
-                    document.getElementById('reportBestCoin').innerText = data.analysis_report.best_coin;
-                    document.getElementById('reportConfidence').innerText = data.analysis_report.confidence;
-                    document.getElementById('reportReason').innerText = data.analysis_report.reason;
+                // عرض أفضل 3 عملات حللها بوت التحليل
+                if (data.analysis_report && data.analysis_report.top_3) {
+                    const top3El = document.getElementById('top3Container');
+                    top3El.innerHTML = "";
+                    data.analysis_report.top_3.forEach((coin, idx) => {
+                        let div = document.createElement('div');
+                        div.className = "bg-darkBg p-3 rounded-xl border border-accentBlue/30 flex items-center justify-between cursor-pointer";
+                        div.onclick = () => {
+                            activeSymbol = coin.symbol;
+                            initTradingViewWidget("OKX:" + coin.symbol.replace('/',''));
+                            document.getElementById('activeChartSymbol').innerText = "OKX:" + coin.symbol.replace('/','');
+                        };
+                        div.innerHTML = `
+                            <div>
+                                <span class="text-[10px] text-gray-400 block">المرتبة #${idx+1}</span>
+                                <span class="text-sm font-black text-emerald-400 font-mono">${coin.symbol}</span>
+                            </div>
+                            <div class="text-left font-mono">
+                                <span class="text-xs font-bold text-white block">$${formatPrice(coin.price)}</span>
+                                <span class="text-[10px] text-accentGreen font-bold">${coin.change}</span>
+                            </div>
+                        `;
+                        top3El.appendChild(div);
+                    });
+                }
+
+                // عرض جدول أفضل 100 عملة محللة
+                if (data.top_100_market) {
+                    const t100Body = document.getElementById('top100TableBody');
+                    t100Body.innerHTML = "";
+                    data.top_100_market.forEach((item, index) => {
+                        let tr = document.createElement('tr');
+                        tr.className = "hover:bg-darkBg/50 transition cursor-pointer";
+                        tr.onclick = () => {
+                            activeSymbol = item.symbol;
+                            initTradingViewWidget("OKX:" + item.symbol.replace('/',''));
+                            document.getElementById('activeChartSymbol').innerText = "OKX:" + item.symbol.replace('/','');
+                        };
+                        tr.innerHTML = `
+                            <td class="p-2.5 font-bold text-gray-400">${index + 1}</td>
+                            <td class="p-2.5 font-bold text-white">${item.symbol}</td>
+                            <td class="p-2.5 text-blue-400">$${formatPrice(item.price)}</td>
+                            <td class="p-2.5 font-bold ${item.change >= 0 ? 'text-accentGreen' : 'text-accentRed'}">${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%</td>
+                            <td class="p-2.5 text-gray-300">$${(item.volume / 1000).toFixed(1)}K</td>
+                            <td class="p-2.5 text-center font-bold text-emerald-400">${item.status}</td>
+                        `;
+                        t100Body.appendChild(tr);
+                    });
                 }
 
                 if (data.balance && data.balance.total) {
@@ -234,7 +287,7 @@
                 const normalTbody = document.getElementById('normalPositionsTable');
                 if (normalTbody && data.positions) {
                     if (data.positions.length === 0) {
-                        normalTbody.innerHTML = `<tr><td colspan="9" class="text-center py-3 text-gray-500 text-xs">لا توجد صفقات مفتوحة حالياً. بوت التحليل يفحص السوق...</td></tr>`;
+                        normalTbody.innerHTML = `<tr><td colspan="9" class="text-center py-3 text-gray-500 text-xs">لا توجد صفقات مفتوحة. بوت التحليل يدرس السوق بدقة لمنع التوقيت الخاطئ...</td></tr>`;
                     } else {
                         normalTbody.innerHTML = "";
                         data.positions.forEach(pos => {
@@ -293,7 +346,7 @@
                     trade_budget: parseFloat(document.getElementById('tradeBudgetInput').value) || 20,
                     max_positions: parseInt(document.getElementById('maxPositionsInput').value) || 3,
                     normal_mode: normalModeActive,
-                    normal_classification: document.getElementById('normalClassificationSelect').value
+                    normal_classification: document.getElementById('normalClassificationSelectSelect') ? document.getElementById('normalClassificationSelectSelect').value : document.getElementById('normalClassificationSelect').value
                 })
             });
             fetchBackendStateAndSync();
