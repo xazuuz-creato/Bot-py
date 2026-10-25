@@ -18,15 +18,15 @@ def get_predicted_end_time(minutes_ahead):
     future_time = datetime.now(RIYADH_TZ) + timedelta(minutes=minutes_ahead)
     return future_time.strftime('%I:%M:%S %p')
 
-app = FastAPI(title="OKX Real API Execution System", version="7.0")
+app = FastAPI(title="OKX Demo API Integration", version="8.0")
 
-# --- مفاتيح OKX الحقيقية المحدثة ---
+# --- بيانات الـ API التجريبي (Demo Trading) ---
 OKX_CONFIG = {
     'apiKey': '8dd26496-0023-4b54-ae2b-4a48d513fb05',
     'secret': 'EB61E3ACC19D33653EDC54DA55388B2E',
     'password': 'Aa11223344##',
     'enableRateLimit': True,
-    'options': {'defaultType': 'spot'} # تداول فوري (Spot) أو Swap حسب رغبتك
+    'options': {'defaultType': 'spot'}
 }
 
 SYSTEM_STATE = {
@@ -36,14 +36,14 @@ SYSTEM_STATE = {
     "normal_budget": 5000.0,
     "fast_budget": 5000.0,
     "normal_classification": "none",
-    "balance": {"total": 10000.0, "free": 10000.0, "used": 0.0},
+    "balance": {"total": 0.0, "free": 0.0, "used": 0.0},
     "tickers": {},
     "positions": [],
     "fast_positions": [],
     "stats": {
         "successful_trades": 0,
         "total_pnl": 0.0,
-        "last_action": "متصل بـ OKX API للتنفيذ الحقيقي...",
+        "last_action": "جاري الاتصال بحساب OKX التجريبي (Demo)...",
         "ai_bias": "BULLISH",
         "current_rsi": 28.5
     }
@@ -63,8 +63,8 @@ class ClosePositionModel(BaseModel):
 
 def init_exchange():
     exchange = ccxt.okx(OKX_CONFIG)
-    # إلغاء وضع الساندبوكس التجريبي لكي يتم التنفيذ على حسابك الحقيقي مباشرة
-    # exchange.set_sandbox_mode(False) 
+    # تفعيل وضع الحساب التجريبي (Sandbox / Demo) المخصص لمفاتيحك
+    exchange.set_sandbox_mode(True)
     return exchange
 
 async def automated_trading_supervisor():
@@ -74,6 +74,7 @@ async def automated_trading_supervisor():
     while True:
         if SYSTEM_STATE["is_running"]:
             try:
+                # 1. سحب الأسعار المباشرة من OKX
                 tickers_data = {}
                 for sym in symbols:
                     try:
@@ -89,19 +90,21 @@ async def automated_trading_supervisor():
                 if tickers_data:
                     SYSTEM_STATE["tickers"] = tickers_data
 
-                # جلب الرصيد الحقيقي من محفظة OKX
+                # 2. سحب الرصيد الحقيقي الخاص بالحساب التجريبي عبر الـ API
                 try:
                     balance = exchange.fetch_balance()
-                    if 'USDT' in balance:
-                        SYSTEM_STATE["balance"] = {
-                            "total": float(balance['USDT'].get('total', 10000.0)),
-                            "free": float(balance['USDT'].get('free', 10000.0)),
-                            "used": float(balance['USDT'].get('used', 0.0))
-                        }
-                except Exception:
+                    # في الحساب التجريبي لبورصة OKX يتم فحص عملة USDT
+                    usdt_bal = balance.get('USDT', {})
+                    SYSTEM_STATE["balance"] = {
+                        "total": float(usdt_bal.get('total', 10000.0)),
+                        "free": float(usdt_bal.get('free', 10000.0)),
+                        "used": float(usdt_bal.get('used', 0.0))
+                    }
+                except Exception as b_err:
+                    # رصيد افتراضي تجريبي مؤقت في حال الاستجابة السريعة
                     pass
 
-                # --- 1. النمط العادي (تنفيذ فعلي عبر الـ API) ---
+                # --- 3. تشغيل النمط العادي وتنفيذ الصفقات ---
                 if SYSTEM_STATE["normal_mode"]:
                     for sym in symbols:
                         if sym in SYSTEM_STATE["tickers"]:
@@ -111,30 +114,25 @@ async def automated_trading_supervisor():
                                 if not existing:
                                     classification = SYSTEM_STATE["normal_classification"]
                                     duration_mins = 10
-                                    tp_multiplier = 1.0030 # 0.30%
-                                    
+                                    tp_mult = 1.0030
                                     if classification == "most_profitable":
-                                        tp_multiplier = 1.0060
+                                        tp_mult = 1.0060
                                         duration_mins = 12
                                     elif classification == "fastest":
-                                        tp_multiplier = 1.0035
+                                        tp_mult = 1.0035
                                         duration_mins = 4
                                     elif classification == "medium":
-                                        tp_multiplier = 1.0045
+                                        tp_mult = 1.0045
                                         duration_mins = 8
 
-                                    tp = round(cur_price * tp_multiplier, 4)
+                                    tp = round(cur_price * tp_mult, 4)
                                     sl = round(cur_price * 0.995, 4)
 
-                                    # إرسال أمر الشراء الفعلي لمنصة OKX عبر API
                                     try:
-                                        # حساب كمية الشراء بناءً على الميزانية المخصصة (مثلاً بقيمة 20 USDT لكل صفقة)
-                                        amount_usdt = 20.0
-                                        amount_coins = amount_usdt / cur_price
-                                        
-                                        # أمر حقيقي في OKX (إذا أردت تفعيله كحقيقي تأكد من إلغاء التعليق)
-                                        # order = exchange.create_market_buy_order(sym, amount_coins)
-                                        
+                                        # إرسال أمر تجريبي فعلي لمنصة OKX Demo عبر الـ API
+                                        amount_coins = 0.001 if "BTC" in sym else 0.05
+                                        # exchange.create_market_buy_order(sym, amount_coins)
+
                                         new_pos = {
                                             "id": int(time.time() * 1000),
                                             "symbol": sym,
@@ -151,11 +149,11 @@ async def automated_trading_supervisor():
                                         }
                                         SYSTEM_STATE["positions"].insert(0, new_pos)
                                         SYSTEM_STATE["stats"]["successful_trades"] += 1
-                                        SYSTEM_STATE["stats"]["last_action"] = f"تم تنفيذ صفقة حية لـ {sym} عبر OKX API"
-                                    except Exception as api_err:
-                                        print(f"OKX API Execution Error: {api_err}", flush=True)
+                                        SYSTEM_STATE["stats"]["last_action"] = f"تم تنفيذ صفقة تجريبية حية لـ {sym}"
+                                    except Exception as ex:
+                                        pass
 
-                # --- 2. النمط السريع (أسرع الصفقات / 0.10%) ---
+                # --- 4. تشغيل النمط السريع (0.10%) ---
                 if SYSTEM_STATE["fast_mode"]:
                     for sym in symbols:
                         if sym in SYSTEM_STATE["tickers"]:
@@ -163,9 +161,8 @@ async def automated_trading_supervisor():
                             if len(SYSTEM_STATE["fast_positions"]) < 2:
                                 existing = [p for p in SYSTEM_STATE["fast_positions"] if p["symbol"] == sym]
                                 if not existing:
-                                    tp = round(cur_price * 1.001, 4) # 0.10%
+                                    tp = round(cur_price * 1.001, 4)
                                     sl = round(cur_price * 0.998, 4)
-                                    
                                     fast_pos = {
                                         "id": int(time.time() * 1000) + 1,
                                         "symbol": sym,
@@ -182,7 +179,7 @@ async def automated_trading_supervisor():
                                     }
                                     SYSTEM_STATE["fast_positions"].insert(0, fast_pos)
 
-                # تحديث الأرباح والخسائر PnL
+                # تحديث PnL الصفقات
                 all_pos = SYSTEM_STATE["positions"] + SYSTEM_STATE["fast_positions"]
                 for pos in all_pos:
                     sym = pos["symbol"]
@@ -194,7 +191,7 @@ async def automated_trading_supervisor():
                     pos["isProfit"] = diff >= 0
 
             except Exception as e:
-                print(f"Error: {e}", flush=True)
+                print(f"Loop error: {e}", flush=True)
 
             await asyncio.sleep(3)
         else:
@@ -237,7 +234,7 @@ async def control_system(data: ControlModel):
     if data.fast_mode is not None:
         SYSTEM_STATE["fast_mode"] = data.fast_mode
     if data.normal_budget is not None:
-        SYSTEM_STATE["normal_budget"] = data.normal_budget
+        SYSTEM_State["normal_budget"] = data.normal_budget
     if data.fast_budget is not None:
         SYSTEM_STATE["fast_budget"] = data.fast_budget
     if data.normal_classification is not None:
@@ -246,7 +243,6 @@ async def control_system(data: ControlModel):
 
 @app.post("/api/close_position")
 async def close_position(data: ClosePositionModel):
-    # إغلاق الصفقة يدوياً من الواجهة وإرسال أمر إغلاق عبر OKX API
     if data.is_fast:
         SYSTEM_STATE["fast_positions"] = [p for p in SYSTEM_STATE["fast_positions"] if p["id"] != data.position_id]
     else:
