@@ -18,9 +18,8 @@ def get_predicted_end_time(minutes_ahead):
     future_time = datetime.now(RIYADH_TZ) + timedelta(minutes=minutes_ahead)
     return future_time.strftime('%I:%M:%S %p')
 
-app = FastAPI(title="OKX Demo API Integration", version="8.0")
+app = FastAPI(title="OKX Demo Final Execution", version="10.0")
 
-# --- بيانات الـ API التجريبي (Demo Trading) ---
 OKX_CONFIG = {
     'apiKey': '8dd26496-0023-4b54-ae2b-4a48d513fb05',
     'secret': 'EB61E3ACC19D33653EDC54DA55388B2E',
@@ -43,7 +42,7 @@ SYSTEM_STATE = {
     "stats": {
         "successful_trades": 0,
         "total_pnl": 0.0,
-        "last_action": "جاري الاتصال بحساب OKX التجريبي (Demo)...",
+        "last_action": "النظام متصل وجاهز للتنفيذ الفعلي...",
         "ai_bias": "BULLISH",
         "current_rsi": 28.5
     }
@@ -63,8 +62,7 @@ class ClosePositionModel(BaseModel):
 
 def init_exchange():
     exchange = ccxt.okx(OKX_CONFIG)
-    # تفعيل وضع الحساب التجريبي (Sandbox / Demo) المخصص لمفاتيحك
-    exchange.set_sandbox_mode(True)
+    exchange.set_sandbox_mode(True) # تفعيل وضع التجربة الحقيقي
     return exchange
 
 async def automated_trading_supervisor():
@@ -74,7 +72,6 @@ async def automated_trading_supervisor():
     while True:
         if SYSTEM_STATE["is_running"]:
             try:
-                # 1. سحب الأسعار المباشرة من OKX
                 tickers_data = {}
                 for sym in symbols:
                     try:
@@ -90,21 +87,18 @@ async def automated_trading_supervisor():
                 if tickers_data:
                     SYSTEM_STATE["tickers"] = tickers_data
 
-                # 2. سحب الرصيد الحقيقي الخاص بالحساب التجريبي عبر الـ API
                 try:
                     balance = exchange.fetch_balance()
-                    # في الحساب التجريبي لبورصة OKX يتم فحص عملة USDT
                     usdt_bal = balance.get('USDT', {})
                     SYSTEM_STATE["balance"] = {
                         "total": float(usdt_bal.get('total', 10000.0)),
                         "free": float(usdt_bal.get('free', 10000.0)),
                         "used": float(usdt_bal.get('used', 0.0))
                     }
-                except Exception as b_err:
-                    # رصيد افتراضي تجريبي مؤقت في حال الاستجابة السريعة
+                except Exception:
                     pass
 
-                # --- 3. تشغيل النمط العادي وتنفيذ الصفقات ---
+                # --- 1. تنفيذ النمط العادي وإرسال أمر الشراء لـ OKX Demo ---
                 if SYSTEM_STATE["normal_mode"]:
                     for sym in symbols:
                         if sym in SYSTEM_STATE["tickers"]:
@@ -129,31 +123,35 @@ async def automated_trading_supervisor():
                                     sl = round(cur_price * 0.995, 4)
 
                                     try:
-                                        # إرسال أمر تجريبي فعلي لمنصة OKX Demo عبر الـ API
-                                        amount_coins = 0.001 if "BTC" in sym else 0.05
-                                        # exchange.create_market_buy_order(sym, amount_coins)
-
-                                        new_pos = {
-                                            "id": int(time.time() * 1000),
-                                            "symbol": sym,
-                                            "type": f"عادي ({classification})",
-                                            "entryPrice": cur_price,
-                                            "currentPrice": cur_price,
-                                            "tp": tp,
-                                            "sl": sl,
-                                            "pnlVal": 0.0,
-                                            "pnl": "+0.00%",
-                                            "isProfit": True,
-                                            "time": get_riyadh_time(),
-                                            "endTime": get_predicted_end_time(duration_mins)
-                                        }
-                                        SYSTEM_STATE["positions"].insert(0, new_pos)
-                                        SYSTEM_STATE["stats"]["successful_trades"] += 1
-                                        SYSTEM_STATE["stats"]["last_action"] = f"تم تنفيذ صفقة تجريبية حية لـ {sym}"
+                                        # تمرير معايير الحساب التجريبي بشكل صحيح لتنفيذ الصفقة في OKX
+                                        # في التداول الفوري التجريبي، يتم تحديد كمية العملة (مثل 0.0001 لـ BTC أو ما يعادل حد أدنى USDT)
+                                        amount = 0.0002 if "BTC" in sym else (0.01 if "ETH" in sym else 1.0)
+                                        
+                                        # أمر الشراء الفعلي الموجه لمنصة OKX Demo
+                                        order = exchange.create_order(sym, 'market', 'buy', amount)
+                                        
+                                        if order:
+                                            new_pos = {
+                                                "id": int(time.time() * 1000),
+                                                "symbol": sym,
+                                                "type": f"عادي ({classification})",
+                                                "entryPrice": cur_price,
+                                                "currentPrice": cur_price,
+                                                "tp": tp,
+                                                "sl": sl,
+                                                "pnlVal": 0.0,
+                                                "pnl": "+0.00%",
+                                                "isProfit": True,
+                                                "time": get_riyadh_time(),
+                                                "endTime": get_predicted_end_time(duration_mins)
+                                            }
+                                            SYSTEM_STATE["positions"].insert(0, new_pos)
+                                            SYSTEM_STATE["stats"]["successful_trades"] += 1
+                                            SYSTEM_STATE["stats"]["last_action"] = f"تم إرسال صفقة OKX Demo بنجاح لـ {sym}"
                                     except Exception as ex:
-                                        pass
+                                        print(f"OKX Order Execution Failed: {ex}", flush=True)
 
-                # --- 4. تشغيل النمط السريع (0.10%) ---
+                # --- 2. تنفيذ النمط السريع (0.10%) ---
                 if SYSTEM_STATE["fast_mode"]:
                     for sym in symbols:
                         if sym in SYSTEM_STATE["tickers"]:
@@ -163,23 +161,29 @@ async def automated_trading_supervisor():
                                 if not existing:
                                     tp = round(cur_price * 1.001, 4)
                                     sl = round(cur_price * 0.998, 4)
-                                    fast_pos = {
-                                        "id": int(time.time() * 1000) + 1,
-                                        "symbol": sym,
-                                        "type": "سريع ⚡ (0.10%)",
-                                        "entryPrice": cur_price,
-                                        "currentPrice": cur_price,
-                                        "tp": tp,
-                                        "sl": sl,
-                                        "pnlVal": 0.0,
-                                        "pnl": "+0.00%",
-                                        "isProfit": True,
-                                        "time": get_riyadh_time(),
-                                        "endTime": get_predicted_end_time(2)
-                                    }
-                                    SYSTEM_STATE["fast_positions"].insert(0, fast_pos)
+                                    try:
+                                        amount = 0.0002 if "BTC" in sym else (0.01 if "ETH" in sym else 1.0)
+                                        exchange.create_order(sym, 'market', 'buy', amount)
 
-                # تحديث PnL الصفقات
+                                        fast_pos = {
+                                            "id": int(time.time() * 1000) + 1,
+                                            "symbol": sym,
+                                            "type": "سريع ⚡ (0.10%)",
+                                            "entryPrice": cur_price,
+                                            "currentPrice": cur_price,
+                                            "tp": tp,
+                                            "sl": sl,
+                                            "pnlVal": 0.0,
+                                            "pnl": "+0.00%",
+                                            "isProfit": True,
+                                            "time": get_riyadh_time(),
+                                            "endTime": get_predicted_end_time(2)
+                                        }
+                                        SYSTEM_STATE["fast_positions"].insert(0, fast_pos)
+                                    except Exception:
+                                        pass
+
+                # تحديث PnL
                 all_pos = SYSTEM_STATE["positions"] + SYSTEM_STATE["fast_positions"]
                 for pos in all_pos:
                     sym = pos["symbol"]
@@ -193,7 +197,7 @@ async def automated_trading_supervisor():
             except Exception as e:
                 print(f"Loop error: {e}", flush=True)
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(4)
         else:
             await asyncio.sleep(2)
 
@@ -234,7 +238,7 @@ async def control_system(data: ControlModel):
     if data.fast_mode is not None:
         SYSTEM_STATE["fast_mode"] = data.fast_mode
     if data.normal_budget is not None:
-        SYSTEM_State["normal_budget"] = data.normal_budget
+        SYSTEM_STATE["normal_budget"] = data.normal_budget
     if data.fast_budget is not None:
         SYSTEM_STATE["fast_budget"] = data.fast_budget
     if data.normal_classification is not None:
