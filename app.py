@@ -14,8 +14,9 @@ RIYADH_TZ = timezone(timedelta(hours=3))
 def get_riyadh_time():
     return datetime.now(RIYADH_TZ).strftime('%I:%M:%S %p')
 
-app = FastAPI(title="OKX Pro Scalping Server", version="20.0")
+app = FastAPI(title="OKX Full Scalping Server", version="21.0")
 
+# إعدادات مفاتيح API لمنصة OKX
 OKX_CONFIG = {
     'apiKey': os.getenv('OKX_API_KEY', '8dd26496-0023-4b54-ae2b-4a48d513fb05'),
     'secret': os.getenv('OKX_SECRET_KEY', 'EB61E3ACC19D33653EDC54DA55388B2E'),
@@ -24,6 +25,7 @@ OKX_CONFIG = {
     'options': {'defaultType': 'spot'}
 }
 
+# حالة النظام المركزية المتكاملة
 SYSTEM_STATE = {
     "is_running": True,
     "timeframe": "5m",
@@ -36,19 +38,17 @@ SYSTEM_STATE = {
         "suitable": True,
         "spread": 0.02,
         "volatility": 0.45,
-        "volume_m": 150.0,
-        "reason": "سيولة عالية وسبريد آمن لفريم 5m."
+        "volume_m": 150.0
     },
     "ai_analysis": {
         "signal": True,
         "rsi": 48.5,
         "dual_trend": "🟢 صاعد (مؤكد)",
-        "vwap_status": True,
-        "reason": "جميع شروط التحليل متطابقة (إشارة دخول مؤكدة على 5m)."
+        "vwap_status": True
     },
     "top_100_market": [],
-    "positions": [],
-    "closed_history": []
+    "positions": [],          # الصفقات النشطة
+    "closed_history": []      # سجل الصفقات المغلقة
 }
 
 class ControlModel(BaseModel):
@@ -62,10 +62,11 @@ class ClosePositionModel(BaseModel):
 
 def init_exchange():
     exchange = ccxt.okx(OKX_CONFIG)
-    exchange.set_sandbox_mode(True)
+    exchange.set_sandbox_mode(True) # الحساب التجريبي Sandbox
     return exchange
 
 async def backend_trading_engine():
+    """حلقة الفحص والتحليل وجلب البيانات من OKX API"""
     exchange = init_exchange()
     
     while True:
@@ -106,20 +107,15 @@ async def backend_trading_engine():
                 market_pool.sort(key=lambda x: x['volume'], reverse=True)
                 SYSTEM_STATE["top_100_market"] = market_pool
 
-                # تحديث فحص الحارس والسيولة
-                SYSTEM_STATE["guardian"] = {
-                    "suitable": True,
-                    "spread": 0.02,
-                    "volatility": 0.42,
-                    "volume_m": 120.5,
-                    "reason": "سيولة فريم 5m ممتازة والإيجابية بالسوق مستقرة."
-                }
-
-                # تحديث الأسعار للأرصدة والصفقات النشطة
+                # تحديث الأسعار والـ PnL للصفقات النشطة تلقائياً
                 for pos in SYSTEM_STATE["positions"]:
                     match = next((item for item in market_pool if item['symbol'] == pos['symbol']), None)
                     if match:
                         pos["currentPrice"] = match['price']
+                        diff = ((pos["currentPrice"] - pos["entryPrice"]) / pos["entryPrice"]) * 100
+                        pos["pnlVal"] = round(diff, 2)
+                        pos["pnl"] = (("+" if diff >= 0 else "") + f"{diff:.2f}%")
+                        pos["isProfit"] = diff >= 0
 
             except Exception as e:
                 print(f"Engine Error: {e}", flush=True)
@@ -170,6 +166,21 @@ async def control_system(data: ControlModel):
 
 @app.post("/api/close_position")
 async def close_position(data: ClosePositionModel):
+    closed = [p for p in SYSTEM_STATE["positions"] if p["id"] == data.position_id]
+    if closed:
+        pos = closed[0]
+        diff_val = ((pos["currentPrice"] - pos["entryPrice"]) / pos["entryPrice"]) * 100
+        net_pnl = (pos["budget"] * (diff_val / 100)) - (pos["budget"] * 0.002)
+        
+        history_item = {
+            "symbol": pos["symbol"],
+            "entry": pos["entryPrice"],
+            "exit": pos["currentPrice"],
+            "pnlVal": round(net_pnl, 3),
+            "isWin": net_pnl >= 0
+        }
+        SYSTEM_STATE["closed_history"].insert(0, history_item)
+
     SYSTEM_STATE["positions"] = [p for p in SYSTEM_STATE["positions"] if p["id"] != data.position_id]
     return {"success": True}
 
