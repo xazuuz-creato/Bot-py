@@ -2,7 +2,6 @@ import os
 import time
 import asyncio
 import ccxt
-import aiohttp
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, FileResponse
@@ -14,9 +13,9 @@ RIYADH_TZ = timezone(timedelta(hours=3))
 def get_riyadh_time():
     return datetime.now(RIYADH_TZ).strftime('%I:%M:%S %p')
 
-app = FastAPI(title="OKX Full Scalping Server", version="21.0")
+app = FastAPI(title="OKX Live Scalping Server", version="22.0")
 
-# إعدادات مفاتيح API لمنصة OKX
+# إعدادات مفاتيح API لمنصة OKX (يمكنك استبدالها أو تركها لتعمل مع البيئة التجريبية)
 OKX_CONFIG = {
     'apiKey': os.getenv('OKX_API_KEY', '8dd26496-0023-4b54-ae2b-4a48d513fb05'),
     'secret': os.getenv('OKX_SECRET_KEY', 'EB61E3ACC19D33653EDC54DA55388B2E'),
@@ -25,122 +24,100 @@ OKX_CONFIG = {
     'options': {'defaultType': 'spot'}
 }
 
-# حالة النظام المركزية المتكاملة
+# حالة النظام المركزية
 SYSTEM_STATE = {
     "is_running": True,
+    "symbol": "DOGE/USDT",
     "timeframe": "5m",
     "trade_budget": 100.0,
-    "max_positions": 3,
-    "balance": {"total": 10000.0, "free": 10000.0, "used": 0.0},
-    "current_symbol": "DOGE/USDT",
-    "ticker": {"price": 0.1245, "change": 2.45, "high": 0.1280, "low": 0.1210},
-    "guardian": {
-        "suitable": True,
-        "spread": 0.02,
-        "volatility": 0.45,
-        "volume_m": 150.0
+    "target_pct": 0.10,
+    "ticker": {"price": 0.1425, "change": 2.45, "high": 0.1480, "low": 0.1390},
+    "engine_metrics": {
+        "ema": "0.1418 (صاعد)",
+        "bb_lower": "0.1420",
+        "rsi": 28,
+        "volume": "1.45x",
+        "liquidity": "$45.2M"
     },
-    "ai_analysis": {
-        "signal": True,
-        "rsi": 48.5,
-        "dual_trend": "🟢 صاعد (مؤكد)",
-        "vwap_status": True
-    },
-    "top_100_market": [],
-    "positions": [],          # الصفقات النشطة
-    "closed_history": []      # سجل الصفقات المغلقة
+    "active_trades": [],
+    "closed_trades": []
 }
 
 class ControlModel(BaseModel):
     is_running: bool = None
+    symbol: str = None
     timeframe: str = None
     trade_budget: float = None
-    current_symbol: str = None
+    target_pct: float = None
 
-class ClosePositionModel(BaseModel):
-    position_id: int
+class TradeActionModel(BaseModel):
+    symbol: str
+    budget: float
+    target_pct: float
+
+class CloseTradeModel(BaseModel):
+    trade_id: int
+    reason: str = "إغلاق يدوي"
 
 def init_exchange():
     exchange = ccxt.okx(OKX_CONFIG)
-    exchange.set_sandbox_mode(True) # الحساب التجريبي Sandbox
+    exchange.set_sandbox_mode(True) # True للحساب التجريبي Sandbox أو False للحقيقي
     return exchange
 
-async def backend_trading_engine():
-    """حلقة الفحص والتحليل وجلب البيانات من OKX API"""
+async def live_trading_engine():
+    """حلقة الخلفية لجلب البيانات الحية من OKX وإدارة صفقات السكالبينغ"""
     exchange = init_exchange()
     
     while True:
         if SYSTEM_STATE["is_running"]:
             try:
-                markets = exchange.load_markets()
-                usdt_symbols = [s for s in markets if s.endswith('/USDT') and ':' not in s]
+                sym = SYSTEM_STATE["symbol"]
+                okx_sym = sym.replace('/', '-')
+                
+                # جلب السعر الحي من OKX
+                ticker = exchange.fetch_ticker(okx_sym)
+                price = float(ticker['last'])
+                open24 = float(ticker.get('open24h', price))
+                change_pct = ((price - open24) / open24) * 100
+                
+                SYSTEM_STATE["ticker"] = {
+                    "price": price,
+                    "change": round(change_pct, 2),
+                    "high": float(ticker.get('high24h', price * 1.02)),
+                    "low": float(ticker.get('low24h', price * 0.98))
+                }
 
-                market_pool = []
-                active_sym = SYSTEM_STATE["current_symbol"]
+                # تحديث الصفقات النشطة ومراقبة الأهداف ووقف الخسارة
+                remaining_trades = []
+                for trade in SYSTEM_STATE["active_trades"]:
+                    trade["currentPrice"] = price
+                    trade["pnlPct"] = ((price - trade["entryPrice"]) / trade["entryPrice"]) * 100
+                    trade["pnlUsdt"] = trade["budget"] * (trade["pnlPct"] / 100)
 
-                for sym in usdt_symbols[:15]:
-                    try:
-                        ticker = exchange.fetch_ticker(sym)
-                        price = float(ticker['last'])
-                        open24 = float(ticker.get('open24h', price))
-                        change_pct = ((price - open24) / open24) * 100
-                        vol = float(ticker.get('quoteVolume', 0.0))
+                    # شروط الإغلاق التلقائي
+                    if trade["pnlPct"] >= trade["targetPct"]:
+                        trade["exitPrice"] = price
+                        trade["reason"] = "حقيق هدف الربح 🎯"
+                        SYSTEM_STATE["closed_trades"].insert(0, trade)
+                    elif price <= trade["stopLossPrice"]:
+                        trade["exitPrice"] = price
+                        trade["reason"] = "ضرب وقف الخسارة 🛑"
+                        SYSTEM_STATE["closed_trades"].insert(0, trade)
+                    else:
+                        remaining_trades.append(trade)
 
-                        market_pool.append({
-                            "symbol": sym.replace('/', '-'),
-                            "price": price,
-                            "change": change_pct,
-                            "volume": vol
-                        })
-
-                        if sym.replace('/', '-') == active_sym.replace('/', '-'):
-                            SYSTEM_STATE["ticker"] = {
-                                "price": price,
-                                "change": round(change_pct, 2),
-                                "high": float(ticker.get('high24h', price * 1.02)),
-                                "low": float(ticker.get('low24h', price * 0.98))
-                            }
-                    except Exception:
-                        pass
-                    await asyncio.sleep(0.02)
-
-                market_pool.sort(key=lambda x: x['volume'], reverse=True)
-                SYSTEM_STATE["top_100_market"] = market_pool
-
-                # تحديث الأسعار والـ PnL للصفقات النشطة تلقائياً
-                for pos in SYSTEM_STATE["positions"]:
-                    match = next((item for item in market_pool if item['symbol'] == pos['symbol']), None)
-                    if match:
-                        pos["currentPrice"] = match['price']
-                        diff = ((pos["currentPrice"] - pos["entryPrice"]) / pos["entryPrice"]) * 100
-                        pos["pnlVal"] = round(diff, 2)
-                        pos["pnl"] = (("+" if diff >= 0 else "") + f"{diff:.2f}%")
-                        pos["isProfit"] = diff >= 0
+                SYSTEM_STATE["active_trades"] = remaining_trades
 
             except Exception as e:
                 print(f"Engine Error: {e}", flush=True)
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(2)
         else:
             await asyncio.sleep(2)
 
-async def self_ping_loop():
-    port = int(os.environ.get("PORT", 10000))
-    url = f"http://127.0.0.1:{port}/"
-    await asyncio.sleep(5)
-    while True:
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
-                    pass
-        except Exception:
-            pass
-        await asyncio.sleep(60)
-
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(backend_trading_engine())
-    asyncio.create_task(self_ping_loop())
+    asyncio.create_task(live_trading_engine())
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
@@ -156,32 +133,51 @@ async def get_state():
 async def control_system(data: ControlModel):
     if data.is_running is not None:
         SYSTEM_STATE["is_running"] = data.is_running
+    if data.symbol is not None:
+        SYSTEM_STATE["symbol"] = data.symbol
     if data.timeframe is not None:
         SYSTEM_STATE["timeframe"] = data.timeframe
     if data.trade_budget is not None:
         SYSTEM_STATE["trade_budget"] = data.trade_budget
-    if data.current_symbol is not None:
-        SYSTEM_STATE["current_symbol"] = data.current_symbol
+    if data.target_pct is not None:
+        SYSTEM_STATE["target_pct"] = data.target_pct
     return {"success": True, "state": SYSTEM_STATE}
 
-@app.post("/api/close_position")
-async def close_position(data: ClosePositionModel):
-    closed = [p for p in SYSTEM_STATE["positions"] if p["id"] == data.position_id]
-    if closed:
-        pos = closed[0]
-        diff_val = ((pos["currentPrice"] - pos["entryPrice"]) / pos["entryPrice"]) * 100
-        net_pnl = (pos["budget"] * (diff_val / 100)) - (pos["budget"] * 0.002)
-        
-        history_item = {
-            "symbol": pos["symbol"],
-            "entry": pos["entryPrice"],
-            "exit": pos["currentPrice"],
-            "pnlVal": round(net_pnl, 3),
-            "isWin": net_pnl >= 0
-        }
-        SYSTEM_STATE["closed_history"].insert(0, history_item)
+@app.post("/api/execute_trade")
+async def execute_trade(data: TradeActionModel):
+    price = SYSTEM_STATE["ticker"]["price"]
+    target_price = price * (1 + (data.target_pct / 100))
+    stop_loss_price = price * 0.988
 
-    SYSTEM_STATE["positions"] = [p for p in SYSTEM_STATE["positions"] if p["id"] != data.position_id]
+    now = datetime.now(RIYADH_TZ) + timedelta(minutes=15)
+    riyadh_time = now.strftime('%I:%M %p')
+
+    new_trade = {
+        "id": int(time.time() * 1000),
+        "symbol": data.symbol,
+        "type": "شراء (Long)",
+        "entryPrice": price,
+        "currentPrice": price,
+        "targetPrice": target_price,
+        "targetPct": data.target_pct,
+        "stopLossPrice": stop_loss_price,
+        "budget": data.budget,
+        "pnlPct": 0.0,
+        "pnlUsdt": 0.0,
+        "expectedExit": riyadhTime
+    }
+
+    SYSTEM_STATE["active_trades"].append(new_trade)
+    return {"success": True, "trade": new_trade}
+
+@app.post("/api/close_trade")
+async def close_trade(data: CloseTradeModel):
+    trade_idx = next((i for i, t in enumerate(SYSTEM_STATE["active_trades"]) if t["id"] == data.trade_id), None)
+    if trade_idx is not None:
+        trade = SYSTEM_STATE["active_trades"].pop(trade_idx)
+        trade["exitPrice"] = trade["currentPrice"]
+        trade["reason"] = data.reason
+        SYSTEM_STATE["closed_trades"].insert(0, trade)
     return {"success": True}
 
 if __name__ == "__main__":
