@@ -14,185 +14,95 @@ RIYADH_TZ = timezone(timedelta(hours=3))
 def get_riyadh_time():
     return datetime.now(RIYADH_TZ).strftime('%I:%M:%S %p')
 
-def get_predicted_end_time(minutes_ahead):
-    future_time = datetime.now(RIYADH_TZ) + timedelta(minutes=minutes_ahead)
-    return future_time.strftime('%I:%M:%S %p')
+app = FastAPI(title="OKX Smart Scalping Server", version="19.0")
 
-app = FastAPI(title="OKX Pro Scalping System with History", version="14.0")
-
+# إعدادات مفاتيح API لمنصة OKX (يمكنك وضعها مباشرة أو عبر متغيرات البيئة للسيرفر)
 OKX_CONFIG = {
-    'apiKey': '8dd26496-0023-4b54-ae2b-4a48d513fb05',
-    'secret': 'EB61E3ACC19D33653EDC54DA55388B2E',
-    'password': 'Aa11223344##',
+    'apiKey': os.getenv('OKX_API_KEY', '8dd26496-0023-4b54-ae2b-4a48d513fb05'),
+    'secret': os.getenv('OKX_SECRET_KEY', 'EB61E3ACC19D33653EDC54DA55388B2E'),
+    'password': os.getenv('OKX_PASSWORD', 'Aa11223344##'),
     'enableRateLimit': True,
     'options': {'defaultType': 'spot'}
 }
 
+# حالة النظام المركزية المتزامنة مع الواجهة
 SYSTEM_STATE = {
     "is_running": True,
-    "mode": "auto",
-    "custom_symbols": ["BTC/USDT"],
-    "trade_budget": 20.0,
+    "timeframe": "5m",
+    "trade_budget": 100.0,
     "max_positions": 3,
-    "normal_mode": True,
-    "guardian_active": True,
-    "market_suitable": True,
-    "max_loss_trades": 3,
-    "today_loss_count": 0,
-    "lock_reason": "",
     "balance": {"total": 10000.0, "free": 10000.0, "used": 0.0},
-    "tickers": {},
     "top_100_market": [],
     "positions": [],
-    "closed_history": [],  # سجل الصفقات المنتهية (رابحة وخاسرة)
-    "analysis_report": {
-        "top_3": [],
-        "best_coin": "جاري فحص 100 عملة...",
-        "confidence": "98.5%",
-        "reason": "بوت التحليل يدرس السيولة والاستقرار الصاعد..."
-    },
+    "closed_history": [],
     "stats": {
         "successful_trades": 0,
-        "total_pnl": 0.0,
-        "last_action": "النظام يعمل بكفاءة وحماية كاملة...",
-        "ai_bias": "BULLISH",
-        "current_rsi": 28.5
+        "total_pnl": 0.0
     }
 }
 
 class ControlModel(BaseModel):
     is_running: bool = None
-    mode: str = None
-    custom_symbols: list = None
+    timeframe: str = None
     trade_budget: float = None
-    max_positions: int = None
-    normal_mode: bool = None
-    guardian_active: bool = None
-    max_loss_trades: int = None
 
 class ClosePositionModel(BaseModel):
     position_id: int
 
 def init_exchange():
     exchange = ccxt.okx(OKX_CONFIG)
+    # اجعلها False إذا أرَدت الحساب الحقيقي Live، أو True للحساب التجريبي Sandbox
     exchange.set_sandbox_mode(True)
     return exchange
 
-async def automated_trading_supervisor():
+async def market_scanner_loop():
+    """حلقة الخلفية لجلب بيانات السوق الحية وتحديث أسعار الصفقات عبر OKX API"""
     exchange = init_exchange()
-
+    
     while True:
         if SYSTEM_STATE["is_running"]:
             try:
-                if SYSTEM_STATE["today_loss_count"] >= SYSTEM_STATE["max_loss_trades"]:
-                    SYSTEM_STATE["is_running"] = False
-                    SYSTEM_STATE["lock_reason"] = f"تم إيقاف البوت تلقائياً لتجاوز حد صفقات الخسارة المسموحة ({SYSTEM_STATE['max_loss_trades']} صفقات)."
-                    await asyncio.sleep(3)
-                    continue
-
                 markets = exchange.load_markets()
                 usdt_symbols = [s for s in markets if s.endswith('/USDT') and ':' not in s]
 
-                market_analysis_pool = []
-                vol_sum = 0.0
-
-                for sym in usdt_symbols[:80]:
+                market_pool = []
+                # فحص أبرز العملات النشطة
+                for sym in usdt_symbols[:15]:
                     try:
                         ticker = exchange.fetch_ticker(sym)
                         price = float(ticker['last'])
-                        change_pct = float(ticker.get('percentage', 0.0))
+                        open24 = float(ticker.get('open24h', price))
+                        change_pct = ((price - open24) / open24) * 100
                         vol = float(ticker.get('quoteVolume', 0.0))
-                        
-                        vol_sum += abs(change_pct)
-                        score = change_pct * 0.6 + (vol / 500000) * 0.4
-                        
-                        market_analysis_pool.append({
-                            "symbol": sym, "price": price, "change": change_pct,
-                            "volume": vol, "score": score,
-                            "status": "صاعد ومستقر 🟢" if change_pct > 0 else "قيد المراقبة 🟡"
+
+                        market_pool.append({
+                            "symbol": sym.replace('/', '-'), # لتتوافق مع الواجهة
+                            "price": price,
+                            "change": change_pct,
+                            "volume": vol
                         })
                     except Exception:
                         pass
-                    await asyncio.sleep(0.02)
+                    await asyncio.sleep(0.05)
 
-                market_analysis_pool.sort(key=lambda x: x['score'], reverse=True)
-                SYSTEM_STATE["top_100_market"] = market_analysis_pool
+                market_pool.sort(key=lambda x: x['volume'], reverse=True)
+                SYSTEM_STATE["top_100_market"] = market_pool
 
-                avg_change = (vol_sum / len(market_analysis_pool)) if market_analysis_pool else 0.0
-                if SYSTEM_STATE["guardian_active"]:
-                    SYSTEM_STATE["market_suitable"] = avg_change >= 0.12
-
-                top_3_coins = market_analysis_pool[:3]
-                SYSTEM_STATE["analysis_report"]["top_3"] = top_3_coins
-
-                if top_3_coins:
-                    SYSTEM_STATE["analysis_report"]["best_coin"] = top_3_coins[0]["symbol"]
-
-                try:
-                    balance = exchange.fetch_balance()
-                    usdt_bal = balance.get('USDT', {})
-                    SYSTEM_STATE["balance"] = {
-                        "total": float(usdt_bal.get('total', 10000.0)),
-                        "free": float(usdt_bal.get('free', 10000.0)),
-                        "used": float(usdt_bal.get('used', 0.0))
-                    }
-                except Exception:
-                    pass
-
-                # تنفيذ الصفقات أوتوماتيكياً بشرط أن يكون السوق مناسباً
-                if SYSTEM_STATE["normal_mode"] and SYSTEM_STATE["market_suitable"] and top_3_coins:
-                    active_pool = SYSTEM_STATE["custom_symbols"] if SYSTEM_STATE["mode"] == "custom" else [top_3_coins[0]["symbol"]]
-                    
-                    for sym in active_pool:
-                        match_item = next((x for x in market_analysis_pool if x['symbol'] == sym), None)
-                        if match_item and len(SYSTEM_STATE["positions"]) < SYSTEM_STATE["max_positions"]:
-                            existing = [p for p in SYSTEM_STATE["positions"] if p["symbol"] == sym]
-                            if not existing and match_item['change'] > 0:
-                                cur_price = match_item['price']
-                                tp = round(cur_price * 1.0035, 4)
-                                sl = round(cur_price * 0.9930, 4)
-
-                                try:
-                                    amount = SYSTEM_STATE["trade_budget"] / cur_price
-                                    exchange.create_order(sym, 'market', 'buy', amount)
-
-                                    new_pos = {
-                                        "id": int(time.time() * 1000),
-                                        "symbol": sym,
-                                        "type": "عادي آمن (تحليل 100 عملة)",
-                                        "entryPrice": cur_price,
-                                        "currentPrice": cur_price,
-                                        "tp": tp,
-                                        "sl": sl,
-                                        "pnlVal": 0.1,
-                                        "pnl": "+0.10%",
-                                        "isProfit": True,
-                                        "time": get_riyadh_time(),
-                                        "endTime": get_predicted_end_time(8)
-                                    }
-                                    SYSTEM_STATE["positions"].insert(0, new_pos)
-                                    SYSTEM_STATE["stats"]["successful_trades"] += 1
-                                except Exception:
-                                    pass
-
-                # تحديث الأرباح والخسائر للسيولة الحية
+                # تحديث أسعار الصفقات النشطة
                 for pos in SYSTEM_STATE["positions"]:
-                    match_item = next((x for x in market_analysis_pool if x['symbol'] == pos['symbol']), None)
-                    if match_item:
-                        pos["currentPrice"] = match_item['price']
-                    diff = ((pos["currentPrice"] - pos["entryPrice"]) / pos["entryPrice"]) * 100
-                    pos["pnlVal"] = round(diff, 2)
-                    pos["pnl"] = (("+" if diff >= 0 else "") + f"{diff:.2f}%")
-                    pos["isProfit"] = diff >= 0
+                    match = next((item for item in market_pool if item['symbol'] == pos['symbol']), None)
+                    if match:
+                        pos["currentPrice"] = match['price']
 
             except Exception as e:
-                print(f"Loop error: {e}", flush=True)
+                print(f"Scanner error: {e}", flush=True)
 
-            await asyncio.sleep(5)
+            await asyncio.sleep(4)
         else:
             await asyncio.sleep(2)
 
 async def self_ping_loop():
+    """حلقة الحفاظ على نشاط السيرفر على الاستضافات السحابية"""
     port = int(os.environ.get("PORT", 10000))
     url = f"http://127.0.0.1:{port}/"
     await asyncio.sleep(5)
@@ -207,14 +117,14 @@ async def self_ping_loop():
 
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(automated_trading_supervisor())
+    asyncio.create_task(market_scanner_loop())
     asyncio.create_task(self_ping_loop())
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
     if os.path.exists("index.html"):
         return FileResponse("index.html")
-    return "<h1>Error: index.html not found!</h1>"
+    return "<h1>Error: index.html not found! Please place index.html in the same directory.</h1>"
 
 @app.get("/api/state")
 async def get_state():
@@ -224,20 +134,10 @@ async def get_state():
 async def control_system(data: ControlModel):
     if data.is_running is not None:
         SYSTEM_STATE["is_running"] = data.is_running
-    if data.mode is not None:
-        SYSTEM_STATE["mode"] = data.mode
-    if data.custom_symbols is not None:
-        SYSTEM_STATE["custom_symbols"] = data.custom_symbols
+    if data.timeframe is not None:
+        SYSTEM_STATE["timeframe"] = data.timeframe
     if data.trade_budget is not None:
         SYSTEM_STATE["trade_budget"] = data.trade_budget
-    if data.max_positions is not None:
-        SYSTEM_STATE["max_positions"] = data.max_positions
-    if data.normal_mode is not None:
-        SYSTEM_STATE["normal_mode"] = data.normal_mode
-    if data.guardian_active is not None:
-        SYSTEM_STATE["guardian_active"] = data.guardian_active
-    if data.max_loss_trades is not None:
-        SYSTEM_STATE["max_loss_trades"] = data.max_loss_trades
     return {"success": True, "state": SYSTEM_STATE}
 
 @app.post("/api/close_position")
@@ -245,18 +145,18 @@ async def close_position(data: ClosePositionModel):
     closed = [p for p in SYSTEM_STATE["positions"] if p["id"] == data.position_id]
     if closed:
         pos = closed[0]
+        # نقل الصفقة إلى أرشيف الصفقات المغلقة
+        diff_val = ((pos["currentPrice"] - pos["entryPrice"]) / pos["entryPrice"]) * 100
+        net_pnl = (pos["budget"] * (diff_val / 100)) - (pos["budget"] * 0.002)
+        
         history_item = {
             "symbol": pos["symbol"],
             "entry": pos["entryPrice"],
             "exit": pos["currentPrice"],
-            "pnlVal": pos["pnlVal"],
-            "pnlText": pos["pnl"],
-            "isWin": pos["isProfit"]
+            "pnlVal": round(net_pnl, 3),
+            "isWin": net_pnl >= 0
         }
         SYSTEM_STATE["closed_history"].insert(0, history_item)
-
-        if not pos["isProfit"]:
-            SYSTEM_STATE["today_loss_count"] += 1
 
     SYSTEM_STATE["positions"] = [p for p in SYSTEM_STATE["positions"] if p["id"] != data.position_id]
     return {"success": True}
