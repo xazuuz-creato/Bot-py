@@ -1,6 +1,2 @@
-fastapi
-uvicorn
-ccxt
-pandas
-aiohttp
-pydantic
+Optional compatibility file for Render deployment environments
+express==4.18.2
