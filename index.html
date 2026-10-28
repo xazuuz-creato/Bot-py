@@ -3,1548 +3,543 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة الحارس لتداول السكالبينغ - Render Server Live</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- TradingView Lightweight Charts -->
-    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        darkBg: '#0b0e14',
-                        cardBg: '#151d2a',
-                        cardBorder: '#212d40',
-                        accentGreen: '#00c896',
-                        accentRed: '#ff4d4d',
-                        accentBlue: '#2962ff'
-                    }
-                }
-            }
-        }
-    </script>
+    <title>منصة الحارس الذكي للسكالبينغ - OKX Live Execution</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+        :root {
+            --bg-dark: #0f1117;
+            --card-bg: #181b24;
+            --card-border: #262b38;
+            --accent-green: #00c853;
+            --accent-red: #ff3d00;
+            --accent-blue: #29b6f6;
+            --accent-purple: #ab47bc;
+            --text-main: #eceff1;
+            --text-muted: #90a4ae;
+        }
+
         body {
-            font-family: 'Cairo', sans-serif;
-            background-color: #0b0e14;
-            color: #e1e7ef;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            direction: rtl;
         }
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-        ::-webkit-scrollbar-track {
-            background: #0b0e14;
+
+        .top-bar {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #212d40;
+
+        .brand-title h2 { margin: 0; font-size: 20px; color: var(--accent-blue); }
+        .brand-title p { margin: 3px 0 0 0; font-size: 12px; color: var(--text-muted); }
+
+        .controls-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .control-item label { font-size: 11px; color: var(--text-muted); }
+
+        select, input {
+            background: #212532;
+            border: 1px solid var(--card-border);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .btn {
+            padding: 9px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        .btn-success { background: var(--accent-green); color: #000; }
+        .btn-danger { background: var(--accent-red); color: #fff; }
+        .btn-purple { background: var(--accent-purple); color: #fff; }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 992px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 8px;
+        }
+
+        .card-header h3 { margin: 0; font-size: 16px; color: var(--text-main); }
+
+        #chart-container {
+            width: 100%;
+            height: 420px;
+            background: #12141d;
+            border-radius: 6px;
+        }
+
+        .engine-status-box {
+            background: #212532;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 6px 0;
+            border-bottom: 1px dashed #2c3245;
+        }
+
+        .metric-value { font-weight: bold; }
+
+        .signal-badge {
+            display: inline-block;
+            padding: 4px 10px;
             border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
         }
-        .pulse-live {
-            box-shadow: 0 0 0 0 rgba(0, 200, 150, 0.7);
-            animation: pulse-green 1.6s infinite cubic-bezier(0.66, 0, 0, 1);
+
+        .badge-buy { background: rgba(0, 200, 83, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+        .badge-wait { background: rgba(144, 164, 174, 0.2); color: var(--text-muted); border: 1px solid var(--text-muted); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            text-align: right;
         }
-        @keyframes pulse-green {
-            to { box-shadow: 0 0 0 10px rgba(0, 200, 150, 0); }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid var(--card-border);
         }
+
+        th { background: #212532; color: var(--text-muted); font-weight: 500; }
+
+        .pnl-positive { color: var(--accent-green); font-weight: bold; }
+        .pnl-negative { color: var(--accent-red); font-weight: bold; }
+
+        .split-trades-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .split-trades-grid { grid-template-columns: 1fr; }
+        }
+
+        .win-zone { border-top: 3px solid var(--accent-green); }
+        .loss-zone { border-top: 3px solid var(--accent-red); }
     </style>
 </head>
-<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden">
+<body>
 
-    <!-- Header Navigation -->
-    <header class="bg-cardBg border-b border-cardBorder px-4 py-3 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center space-x-3 space-x-reverse">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-emerald-500 flex items-center justify-center text-white text-xl font-bold shadow-lg">
-                    <i class="fa-solid fa-shield-halved"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
-                        الحارس الذكي للسكالبينغ <span class="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full border border-emerald-500/30">Render Server Active</span>
-                    </h1>
-                    <p class="text-xs text-slate-400">مراقب سيولة وسبريد وفحص ذكاء اصطناعي تكيفي مع الـ 5m & 10m</p>
-                </div>
-            </div>
-
-            <!-- Global Stats Bar -->
-            <div class="flex items-center gap-4 bg-darkBg/60 px-4 py-2 rounded-lg border border-cardBorder text-xs">
-                <div>
-                    <span class="text-slate-400 block">حالة الاتصال:</span>
-                    <span id="apiStatusBadge" class="text-emerald-400 font-semibold flex items-center gap-1">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-live"></span> OKX Live Engine
-                    </span>
-                </div>
-                <div class="h-6 w-px bg-cardBorder"></div>
-                <div>
-                    <span class="text-slate-400 block">حالة البوت الآلي:</span>
-                    <span id="botStatusHeader" class="text-emerald-400 font-bold flex items-center gap-1">
-                        <i class="fa-solid fa-play"></i> نشط
-                    </span>
-                </div>
-                <div class="h-6 w-px bg-cardBorder"></div>
-                <div>
-                    <span class="text-slate-400 block">التوقيت المحلي:</span>
-                    <span id="riyadhClock" class="text-blue-400 font-mono font-semibold">--:--:-- (الرياض)</span>
-                </div>
-            </div>
+<div class="container">
+    
+    <!-- شريط عرض رصيد حساب OKX API الفعلي -->
+    <div class="card" style="padding: 10px 15px; margin-bottom: 0px; display: flex; justify-content: space-between; align-items: center; background: #212532; flex-wrap: wrap; gap: 10px;">
+        <div style="font-size: 13px; font-weight: bold; color: var(--accent-blue);">
+            💼 رصيد حساب OKX API (Sandbox):
         </div>
-    </header>
+        <div style="display: flex; gap: 20px; font-size: 13px; font-family: monospace; flex-wrap: wrap;">
+            <div>إجمالي الرصيد: <span id="balanceTotal" style="color: var(--accent-green); font-weight: bold;">-- USDT</span></div>
+            <div>المتاح: <span id="balanceFree" style="color: #fff; font-weight: bold;">-- USDT</span></div>
+            <div>المستخدم بالصفقات: <span id="balanceUsed" style="color: var(--accent-purple); font-weight: bold;">-- USDT</span></div>
+        </div>
+    </div>
 
-    <!-- Main Container -->
-    <main class="max-w-7xl w-full mx-auto p-4 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-4">
-        
-        <!-- Left Panel: Market Controls, Auto-Bot Config, Toggles & AI (4 Cols) -->
-        <div class="lg:col-span-4 flex flex-col gap-4">
-            
-            <!-- Active Coin Selector & Live Ticker -->
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-xl">
-                <div class="flex justify-between items-center mb-3">
-                    <label class="text-xs font-semibold text-slate-400">اختر زوج التداول:</label>
-                    <span id="update-badge" class="text-[10px] text-slate-400 bg-darkBg px-2 py-0.5 rounded border border-cardBorder">تحديث حي 2.5 ثانية</span>
-                </div>
-                <select id="symbolSelect" class="w-full bg-darkBg border border-cardBorder text-white text-base rounded-lg p-3 font-semibold focus:outline-none focus:border-blue-500 transition">
-                    <option value="DOGE-USDT" selected>DOGE / USDT (الرئيسي)</option>
-                    <option value="BTC-USDT">BTC / USDT</option>
-                    <option value="ETH-USDT">ETH / USDT</option>
-                    <option value="SOL-USDT">SOL / USDT</option>
-                    <option value="PEPE-USDT">PEPE / USDT</option>
-                    <option value="XRP-USDT">XRP / USDT</option>
-                    <option value="SHIB-USDT">SHIB / USDT</option>
-                    <option value="AVAX-USDT">AVAX / USDT</option>
+    <!-- Header / Control Panel -->
+    <div class="top-bar">
+        <div class="brand-title">
+            <h2>محرك الحارس الذكي (SmartScalpEngine + OKX Live)</h2>
+            <p>التداول الآلي المباشر للعملات عالية السيولة | التنفيذ التلقائي للشروط الصارمة</p>
+        </div>
+
+        <div class="controls-group">
+            <div class="control-item">
+                <label>العملة الحالية:</label>
+                <select id="symbolSelect" onchange="updateServerSettings()">
+                    <option value="BTC/USDT">BTC/USDT (سيولة عالية)</option>
+                    <option value="ETH/USDT">ETH/USDT (سيولة عالية)</option>
+                    <option value="SOL/USDT">SOL/USDT (سيولة عالية)</option>
+                    <option value="DOGE/USDT" selected>DOGE/USDT (نشطة)</option>
+                    <option value="XRP/USDT">XRP/USDT (سيولة عالية)</option>
                 </select>
-
-                <!-- Ticker Details Card -->
-                <div class="mt-4 grid grid-cols-2 gap-3 text-center">
-                    <div class="bg-darkBg/80 p-3 rounded-lg border border-cardBorder">
-                        <span class="text-xs text-slate-400 block mb-1">السعر الحي (OKX)</span>
-                        <span id="livePrice" class="text-xl font-bold text-emerald-400 font-mono">--.----</span>
-                    </div>
-                    <div class="bg-darkBg/80 p-3 rounded-lg border border-cardBorder">
-                        <span class="text-xs text-slate-400 block mb-1">التغير 24س</span>
-                        <span id="liveChange" class="text-xl font-bold text-slate-300 font-mono">--%</span>
-                    </div>
-                </div>
-
-                <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div class="bg-darkBg/40 p-2 rounded border border-cardBorder/60 flex justify-between">
-                        <span class="text-slate-400">أعلى سعر:</span>
-                        <span id="tickerHigh" class="font-mono">--</span>
-                    </div>
-                    <div class="bg-darkBg/40 p-2 rounded border border-cardBorder/60 flex justify-between">
-                        <span class="text-slate-400">أدنى سعر:</span>
-                        <span id="tickerLow" class="font-mono">--</span>
-                    </div>
-                </div>
             </div>
 
-            <!-- Auto-Trading Controls, Fee Calculator & Trailing Stop -->
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-xl border-l-4 border-l-emerald-500">
-                <div class="flex items-center justify-between border-b border-cardBorder pb-2 mb-3">
-                    <h2 class="font-bold text-sm text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-robot text-emerald-400"></i> إعدادات الأهداف وحاسبة OKX
-                    </h2>
-                    <span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold">تنفيذ آلي مباشر</span>
-                </div>
-
-                <div class="space-y-3 text-xs">
-                    <!-- Trade Budget Input -->
-                    <div>
-                        <label class="text-slate-400 block mb-1">ميزانية الصفقة الواحدة (USDT):</label>
-                        <div class="relative">
-                            <input type="number" id="tradeBudgetInput" value="100" min="10" step="10" oninput="updateTradeCalculations()" class="w-full bg-darkBg border border-cardBorder rounded-lg p-2.5 font-mono text-sm text-emerald-400 focus:outline-none focus:border-blue-500 pr-3 pl-12 font-bold">
-                            <span class="absolute left-3 top-2.5 text-slate-500 font-bold">USDT</span>
-                        </div>
-                    </div>
-
-                    <!-- Custom Profit Percentage Target -->
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-slate-400 block mb-1">نسبة الربح المستهدفة (TP %):</label>
-                            <div class="relative">
-                                <input type="number" id="targetTpInput" value="0.25" min="0.05" step="0.05" oninput="updateTradeCalculations()" class="w-full bg-darkBg border border-cardBorder rounded-lg p-2.5 font-mono text-sm text-emerald-400 focus:outline-none focus:border-emerald-500 pr-3 pl-8 font-bold">
-                                <span class="absolute left-3 top-2.5 text-emerald-500 font-bold">%</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-slate-400 block mb-1">وقف الخسارة (SL %):</label>
-                            <div class="relative">
-                                <input type="number" id="targetSlInput" value="0.20" min="0.05" step="0.05" oninput="updateTradeCalculations()" class="w-full bg-darkBg border border-cardBorder rounded-lg p-2.5 font-mono text-sm text-red-400 focus:outline-none focus:border-red-500 pr-3 pl-8 font-bold">
-                                <span class="absolute left-3 top-2.5 text-red-500 font-bold">%</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Smart Trailing Stop Toggle -->
-                    <div class="bg-darkBg/80 p-2.5 rounded-lg border border-cardBorder flex items-center justify-between">
-                        <div>
-                            <span class="font-bold text-slate-200 block text-xs">⚡ الوقف المتحرك الذكي (Trailing Stop)</span>
-                            <span class="text-[10px] text-slate-400">تأمين نقطة الدخول عند +0.15% وملاحقة السعر بـ 0.10%</span>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="trailingStopToggle" checked class="sr-only peer">
-                            <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                        </label>
-                    </div>
-
-                    <!-- OKX Fee Calculator Breakdown -->
-                    <div class="bg-darkBg/60 p-2.5 rounded-lg border border-cardBorder text-slate-300 space-y-1">
-                        <div class="flex justify-between items-center text-[11px]">
-                            <span class="text-slate-400">إجمالي الربح الإجمالي:</span>
-                            <span id="grossProfitUsdt" class="font-mono text-slate-300">+$0.25</span>
-                        </div>
-                        <div class="flex justify-between items-center text-[11px]">
-                            <span class="text-slate-400">تقدير رسوم OKX (0.10% دخول/خروج):</span>
-                            <span id="okxFeeUsdt" class="font-mono text-amber-400">-$0.10</span>
-                        </div>
-                        <div class="flex justify-between items-center border-t border-cardBorder/60 pt-1 font-bold">
-                            <span class="text-emerald-400">صافي الربح الفعلي المتوقع:</span>
-                            <span id="netProfitUsdt" class="font-mono text-emerald-400 text-sm">+$0.15</span>
-                        </div>
-                    </div>
-
-                    <!-- Market Scope Filter Option -->
-                    <div>
-                        <label class="text-slate-400 block mb-1 font-bold text-amber-400 flex items-center gap-1.5">
-                            <i class="fa-solid fa-filter"></i> نطاق وسلة التداول الآلي:
-                        </label>
-                        <select id="marketScopeSelect" onchange="handleMarketScopeChange()" class="w-full bg-darkBg border border-amber-500/40 text-slate-100 text-xs rounded-lg p-2.5 font-semibold focus:outline-none focus:border-amber-400 transition">
-                            <option value="normal" selected>🌐 الوضع العادي الشامل (جميع العملات + الميمز)</option>
-                            <option value="stable_majors">🛡️ وضع العملات المستقرة والقيادية فقط (سيولة ضخمة)</option>
-                        </select>
-                    </div>
-
-                    <!-- Auto-Trader Toggle Button -->
-                    <div class="pt-2">
-                        <button id="autoBotToggleBtn" onclick="toggleAutoBot()" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2 pulse-live">
-                            <i class="fa-solid fa-power-off"></i> إيقاف التداول الآلي المباشر (مفعل حالياً)
-                        </button>
-                    </div>
-                </div>
+            <div class="control-item">
+                <label>فريم التحليل:</label>
+                <select id="timeframeSelect" onchange="updateServerSettings()">
+                    <option value="1m">1 minute</option>
+                    <option value="5m" selected>5 minutes (محرك السكالبينغ)</option>
+                    <option value="15m">15 minutes</option>
+                </select>
             </div>
 
-            <!-- Feature Toggles -->
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-xl">
-                <div class="flex items-center justify-between border-b border-cardBorder pb-2 mb-3">
-                    <h2 class="font-bold text-sm text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-blue-400"></i> مفاتيح التحكم والشروط المطلقة
-                    </h2>
-                    <span class="text-[10px] text-slate-400">تحكم بمرونة كاملة</span>
-                </div>
-
-                <div class="space-y-2 text-xs">
-                    <div class="flex items-center justify-between bg-darkBg/60 p-2 rounded border border-cardBorder">
-                        <div>
-                            <span class="font-bold text-slate-300">محلل الاتجاه المزدوج (Dual-Trend)</span>
-                            <span class="text-[10px] text-slate-500 block">تأكيد اتجاه 10m/15m قبل دخول 5m</span>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="toggleDualTrend" checked onchange="runSmartEngineAnalysis()" class="sr-only peer">
-                            <div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
-                        </label>
-                    </div>
-
-                    <div class="flex items-center justify-between bg-darkBg/60 p-2 rounded border border-cardBorder">
-                        <div>
-                            <span class="font-bold text-slate-300">مؤشر VWAP + SuperTrend / UT Bot</span>
-                            <span class="text-[10px] text-slate-500 block">اشتراط السعر أعلى من VWAP المكتمل</span>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="toggleVwapSuperTrend" checked onchange="runSmartEngineAnalysis()" class="sr-only peer">
-                            <div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-purple-500"></div>
-                        </label>
-                    </div>
-
-                    <div class="flex items-center justify-between bg-darkBg/60 p-2 rounded border border-cardBorder">
-                        <div>
-                            <span class="font-bold text-slate-300">فلتر السبريد والسيولة الحاد</span>
-                            <span class="text-[10px] text-slate-500 block">استبعاد السبريد المرتفع تلقائياً</span>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="toggleSpreadLiquidity" checked onchange="runSmartEngineAnalysis()" class="sr-only peer">
-                            <div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
-                        </label>
-                    </div>
-                </div>
+            <div class="control-item">
+                <label>ميزانية الصفقة ($):</label>
+                <input type="number" id="tradeBudget" value="100" min="10" onchange="updateServerSettings()" style="width: 80px;">
             </div>
 
-            <!-- Guardian Suitability Scanner -->
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-xl">
-                <div class="flex items-center justify-between border-b border-cardBorder pb-3 mb-3">
-                    <h2 class="font-bold text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-clipboard-check text-blue-400"></i> صلاحية السكالبينغ (فحص السيولة)
-                    </h2>
-                    <span id="guardianStatusBadge" class="text-xs px-2 py-1 rounded font-bold bg-slate-700 text-slate-300">جاري الفحص...</span>
-                </div>
-
-                <div class="space-y-3 text-xs">
-                    <div>
-                        <div class="flex justify-between mb-1">
-                            <span class="text-slate-400">الفارق السعري (Bid/Ask Spread):</span>
-                            <span id="spreadVal" class="font-mono font-bold text-slate-200">--%</span>
-                        </div>
-                        <div class="w-full bg-darkBg h-2 rounded-full overflow-hidden border border-cardBorder">
-                            <div id="spreadBar" class="bg-emerald-500 h-full transition-all duration-300" style="width: 0%"></div>
-                        </div>
-                        <p id="spreadThresholdNote" class="text-[10px] text-slate-500 mt-0.5">الحد الأقصى المسموح للسبريد: 0.10%</p>
-                    </div>
-
-                    <div>
-                        <div class="flex justify-between mb-1">
-                            <span class="text-slate-400">نسبة التذبذب اللحظي (ATR 5m/10m):</span>
-                            <span id="volatilityVal" class="font-mono font-bold text-slate-200">--%</span>
-                        </div>
-                        <div class="w-full bg-darkBg h-2 rounded-full overflow-hidden border border-cardBorder">
-                            <div id="volatilityBar" class="bg-blue-500 h-full transition-all duration-300" style="width: 0%"></div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="flex justify-between mb-1">
-                            <span class="text-slate-400">حجم التداول (أولوية أعلى سيولة):</span>
-                            <span id="volumeVal" class="font-mono font-bold text-slate-200">$--M</span>
-                        </div>
-                        <div class="w-full bg-darkBg h-2 rounded-full overflow-hidden border border-cardBorder">
-                            <div id="volumeBar" class="bg-purple-500 h-full transition-all duration-300" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="guardianReasons" class="mt-3 p-3 rounded-lg bg-darkBg/90 border border-cardBorder text-xs text-slate-300 hidden"></div>
+            <div class="control-item">
+                <label>هدف الربح المستهدف (TP %):</label>
+                <input type="number" id="targetProfitPct" value="0.10" step="0.05" min="0.05" onchange="updateServerSettings()" style="width: 70px;">
             </div>
 
-            <!-- SmartScalpEngine AI Decision Simulator Card -->
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-xl border-t-2 border-t-purple-500">
-                <div class="flex items-center justify-between mb-3 border-b border-cardBorder pb-2">
-                    <h3 class="font-bold text-sm text-purple-300 flex items-center gap-2">
-                        <i class="fa-solid fa-microchip text-purple-400"></i> محرك التحليل الآلي التكيّفي
-                    </h3>
-                    <span class="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold animate-pulse">
-                        <i class="fa-solid fa-bolt"></i> إشارات متناسقة مع شمعة 5m
-                    </span>
-                </div>
+            <button id="autoBotBtn" class="btn btn-success" onclick="toggleAutoBot()">
+                🤖 التداول الآلي: مفعّل (Auto-Pilot)
+            </button>
+        </div>
+    </div>
 
-                <div class="mb-3 grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                        <label class="text-slate-400 block mb-1">حساسية الاستراتيجية:</label>
-                        <select id="botStrategyMode" onchange="runSmartEngineAnalysis()" class="w-full bg-darkBg border border-cardBorder text-purple-300 rounded p-1.5 focus:outline-none">
-                            <option value="flexible" selected>سكالبينغ متوازنة (5m + VWAP)</option>
-                            <option value="balanced">محافظة (Dual-Trend + RSI)</option>
-                            <option value="strict">صارمة جداً (SuperTrend + EMA200)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-slate-400 block mb-1">اختبار آلية البوت:</label>
-                        <button onclick="triggerTestSignal()" class="w-full bg-purple-600/30 hover:bg-purple-600 border border-purple-500/40 text-purple-200 font-bold py-1.5 px-2 rounded transition">
-                            <i class="fa-solid fa-vial"></i> تجربة صفقة آلياً
-                        </button>
-                    </div>
-                </div>
-
-                <div id="aiAnalysisBox" class="bg-darkBg p-3 rounded-lg border border-cardBorder text-xs space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400">إشارة المحرك الفنية:</span>
-                        <span id="aiAction" class="font-bold text-slate-300">جاري الحساب...</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400">الاتجاه المزدوج (10m/15m Trend):</span>
-                        <span id="dualTrendDisplay" class="font-mono text-emerald-400 font-bold">--</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400">موقع السعر من VWAP:</span>
-                        <span id="vwapStatusDisplay" class="font-mono text-purple-400 font-bold">--</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400">مؤشر الزخم (RSI 14):</span>
-                        <span id="rsiValDisplay" class="font-mono text-slate-300 font-bold">--</span>
-                    </div>
-                    <div class="pt-2 border-t border-cardBorder/60">
-                        <span class="text-slate-400 block mb-1">حالة الشروط المفعلة:</span>
-                        <p id="aiReason" class="text-slate-300 leading-relaxed italic text-[11px]">يقوم محرك SmartScalpEngine بمطابقة إشارة الـ 5 دقائق مع اتجاه الـ 10 دقائق وVWAP.</p>
-                    </div>
-                </div>
-
-                <div class="mt-4 p-2.5 rounded-xl bg-purple-950/40 border border-purple-800/50 flex items-center justify-between text-xs text-purple-200">
-                    <span class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-purple-400 animate-ping"></span>
-                        وضع التنفيذ: <strong>سكالبينغ تلقائي (5m/10m)</strong>
-                    </span>
-                    <button onclick="executeScalpTrade('يدوي (إجباري)')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] px-2.5 py-1 rounded transition border border-cardBorder">
-                        دخول يدوي طارئ
-                    </button>
-                </div>
+    <!-- Main Grid: Chart + Engine Status -->
+    <div class="dashboard-grid">
+        <div class="card">
+            <div class="card-header">
+                <h3>الرسم البياني المباشر (OKX API Server)</h3>
+                <span id="livePriceHeader" style="font-weight: bold; font-size: 16px; color: var(--accent-blue);">جاري الاتصال...</span>
             </div>
-
+            <div id="chart-container"></div>
         </div>
 
-        <!-- Right Panel: Chart, Active Trades & Comprehensive Report (8 Cols) -->
-        <div class="lg:col-span-8 flex flex-col gap-4">
-            
-            <!-- Real-Time Interactive Chart Panel -->
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-xl flex flex-col h-[480px]">
-                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-emerald-400"></i>
-                        <h2 id="chartTitle" class="font-bold text-sm">شارت الشموع اليابانية الحقيقي - OKX (DOGE-USDT)</h2>
-                    </div>
-
-                    <div class="flex gap-1 bg-darkBg p-1 rounded-lg border border-cardBorder text-xs">
-                        <button onclick="setTimeframe('1m')" class="tf-btn text-slate-400 hover:text-white px-2.5 py-1 rounded transition">1m</button>
-                        <button onclick="setTimeframe('5m')" class="tf-btn bg-cardBorder text-emerald-400 font-bold px-2.5 py-1 rounded transition border border-emerald-500/30">5m (افتراضي)</button>
-                        <button onclick="setTimeframe('10m')" class="tf-btn text-slate-400 hover:text-white px-2.5 py-1 rounded transition">10m (جديد)</button>
-                        <button onclick="setTimeframe('15m')" class="tf-btn text-slate-400 hover:text-white px-2.5 py-1 rounded transition">15m</button>
-                        <button onclick="setTimeframe('1h')" class="tf-btn text-slate-400 hover:text-white px-2.5 py-1 rounded transition">1h</button>
-                    </div>
-                </div>
-
-                <div id="tvChart" class="w-full flex-grow rounded-lg overflow-hidden border border-cardBorder"></div>
+        <div class="card">
+            <div class="card-header">
+                <h3>تشخيص محرك SmartScalpEngine وحالة البحث</h3>
+                <span id="engineStatusBadge" class="signal-badge badge-buy">مفعل ويراقب السوق</span>
             </div>
 
-            <!-- Active Trades Monitoring Table Card -->
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-xl">
-                <div class="flex items-center justify-between mb-3 border-b border-cardBorder pb-2">
-                    <h3 class="font-bold text-sm text-emerald-400 flex items-center gap-2">
-                        <i class="fa-solid fa-layer-group"></i> مراقبة الصفقات النشطة (مواكبة الوقف المتحرك)
-                    </h3>
-                    <div class="flex items-center gap-2 text-xs">
-                        <span class="text-slate-400">الصندوق / الصفقات:</span>
-                        <span id="activeTradesCount" class="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold">0</span>
-                    </div>
-                </div>
+            <!-- عرض حالة البحث والحالة الحية للبوت -->
+            <div style="background: rgba(41, 182, 246, 0.1); border: 1px solid var(--accent-blue); padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 13px;">
+                <div style="font-weight: bold; color: var(--accent-blue); margin-bottom: 4px;">📡 حالة البوت الحالية:</div>
+                <div id="engineStatusText" style="color: #fff; font-weight: 600;">جاري فحص السوق والبحث عن صفقة...</div>
+            </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-right text-xs">
-                        <thead class="bg-darkBg text-slate-400 border-b border-cardBorder">
-                            <tr>
-                                <th class="p-2.5">العملة</th>
-                                <th class="p-2.5">الفريم / الوضع</th>
-                                <th class="p-2.5">سعر الدخول</th>
-                                <th class="p-2.5">السعر الحالي</th>
-                                <th class="p-2.5">الهدف (TP)</th>
-                                <th class="p-2.5">الوقف المتحرك (SL)</th>
-                                <th class="p-2.5">PnL (الأرباح)</th>
-                                <th class="p-2.5">حالة التأمين</th>
-                                <th class="p-2.5 text-center">إغلاق</th>
-                            </tr>
-                        </thead>
-                        <tbody id="activeTradesTbody" class="divide-y divide-cardBorder/60">
-                            <tr id="noActiveTradesRow">
-                                <td colspan="9" class="text-center py-6 text-slate-500">لا توجد صفقات نشطة حالياً. البوت يفحص جميع العملات تلقائياً على فريم الـ 5m و 10m.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <!-- عرض الشروط الصارمة المذكرة -->
+            <div class="engine-status-box">
+                <div style="font-size: 12px; font-weight: bold; color: var(--accent-purple); margin-bottom: 6px; border-bottom: 1px solid var(--card-border); padding-bottom: 4px;">الشروط الصارمة لاستراتيجية السكالبينغ:</div>
+                <div class="metric-row">
+                    <span>1. مؤشر القوة النسبية (RSI < 40):</span>
+                    <span id="condRsi" class="metric-value" style="color: var(--accent-green);">قيد الفحص...</span>
+                </div>
+                <div class="metric-row">
+                    <span>2. سيولة حجم التداول (> $15M):</span>
+                    <span id="condVolume" class="metric-value" style="color: var(--accent-green);">قيد الفحص...</span>
+                </div>
+                <div class="metric-row">
+                    <span>3. فلتر الاتجاه الصاعد (EMA Filter):</span>
+                    <span id="condTrend" class="metric-value" style="color: var(--accent-green);">قيد الفحص...</span>
                 </div>
             </div>
 
-            <!-- Closed / Historical Trades Section -->
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-xl">
-                <div class="flex items-center justify-between mb-3 border-b border-cardBorder pb-2">
-                    <h3 class="font-bold text-sm text-blue-400 flex items-center gap-2">
-                        <i class="fa-solid fa-clock-rotate-left"></i> سجل الصفقات المغلقة (صافي الأرباح بعد الرسوم)
-                    </h3>
-                    <div class="flex items-center gap-4 text-xs font-mono">
-                        <span class="text-emerald-400 font-bold flex items-center gap-1">
-                            <i class="fa-solid fa-circle-check"></i> رابحة: <span id="winCountBadge">0</span>
-                        </span>
-                        <span class="text-red-400 font-bold flex items-center gap-1">
-                            <i class="fa-solid fa-circle-xmark"></i> خاسرة: <span id="lossCountBadge">0</span>
-                        </span>
-                        <span class="text-slate-300 bg-darkBg px-2 py-0.5 rounded border border-cardBorder">
-                            صافي الأرباح المتبقية: <span id="netPnlBadge" class="font-bold text-emerald-400">$0.00</span>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-darkBg/60 rounded-xl p-3 border border-emerald-500/30">
-                        <div class="flex items-center justify-between border-b border-emerald-500/20 pb-2 mb-2">
-                            <h4 class="font-bold text-xs text-emerald-400 flex items-center gap-1.5">
-                                <i class="fa-solid fa-trophy"></i> الصفقات الرابحة
-                            </h4>
-                            <span id="winningPnlTotal" class="text-xs font-mono font-bold text-emerald-400">+$0.00</span>
-                        </div>
-                        <div class="overflow-x-auto max-h-52 overflow-y-auto">
-                            <table class="w-full text-right text-[11px]">
-                                <thead class="bg-darkBg text-slate-400 sticky top-0">
-                                    <tr>
-                                        <th class="p-1.5">العملة</th>
-                                        <th class="p-1.5">الدخول / الخروج</th>
-                                        <th class="p-1.5">الصافي ($)</th>
-                                        <th class="p-1.5 text-center">السبب</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="winningTradesTbody" class="divide-y divide-cardBorder/40">
-                                    <tr>
-                                        <td colspan="4" class="text-center py-4 text-slate-500">لا توجد صفقات رابحة بعد</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="bg-darkBg/60 rounded-xl p-3 border border-red-500/30">
-                        <div class="flex items-center justify-between border-b border-red-500/20 pb-2 mb-2">
-                            <h4 class="font-bold text-xs text-red-400 flex items-center gap-1.5">
-                                <i class="fa-solid fa-circle-exclamation"></i> الصفقات الخاسرة
-                            </h4>
-                            <span id="losingPnlTotal" class="text-xs font-mono font-bold text-red-400">-$0.00</span>
-                        </div>
-                        <div class="overflow-x-auto max-h-52 overflow-y-auto">
-                            <table class="w-full text-right text-[11px]">
-                                <thead class="bg-darkBg text-slate-400 sticky top-0">
-                                    <tr>
-                                        <th class="p-1.5">العملة</th>
-                                        <th class="p-1.5">الدخول / الخروج</th>
-                                        <th class="p-1.5">الخسارة ($)</th>
-                                        <th class="p-1.5 text-center">السبب</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="losingTradesTbody" class="divide-y divide-cardBorder/40">
-                                    <tr>
-                                        <td colspan="4" class="text-center py-4 text-slate-500">لا توجد صفقات خاسرة بعد</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Comprehensive Analysis Report -->
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-xl">
-                <div class="flex flex-wrap items-center justify-between gap-2 mb-3 border-b border-cardBorder pb-3">
-                    <div>
-                        <h3 class="font-bold text-sm text-blue-400 flex items-center gap-2">
-                            <i class="fa-solid fa-ranking-star"></i> تقرير وترتيب العملات اللحظي (5m / 10m)
-                        </h3>
-                        <p class="text-[11px] text-slate-400 mt-0.5">ترتيب الصفقات الموصى بها بدمج أولوية السيولة ونقاء السبريد وموافقته للاتجاه المزدوج</p>
-                    </div>
-                    <button onclick="scanMarketFullReport()" class="bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-500/40 text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-arrows-rotate"></i> تحديث تقرير السوق
-                    </button>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-right text-xs">
-                        <thead class="bg-darkBg text-slate-400 border-b border-cardBorder">
-                            <tr>
-                                <th class="p-2.5">الرتبة / العملة</th>
-                                <th class="p-2.5">السعر الحالي</th>
-                                <th class="p-2.5">السبريد (Spread)</th>
-                                <th class="p-2.5">اتجاه (10m Dual)</th>
-                                <th class="p-2.5">السيولة 24س</th>
-                                <th class="p-2.5">تقييم الصلاحية</th>
-                                <th class="p-2.5 text-center">الإجراء</th>
-                            </tr>
-                        </thead>
-                        <tbody id="comprehensiveReportTbody" class="divide-y divide-cardBorder/60">
-                            <tr>
-                                <td colspan="7" class="text-center py-4 text-slate-400">جارٍ إجراء المسح الشامل للعملات وتطبيق الفلاتر الذكية...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Execution Logs & Server Console Panel -->
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-xl flex-grow flex flex-col">
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="font-bold text-xs text-slate-400 flex items-center gap-2 font-mono">
-                        <i class="fa-solid fa-terminal text-blue-400"></i> سجل عمليات الحارس والتنفيذ الآلي (Render Live Logs)
-                    </h3>
-                    <button onclick="clearLogs()" class="text-[11px] text-slate-500 hover:text-slate-300">مسح السجل</button>
-                </div>
-                <div id="logsConsole" class="bg-darkBg/95 p-3 rounded-lg border border-cardBorder font-mono text-xs text-slate-300 h-36 overflow-y-auto space-y-1.5 border-l-4 border-l-emerald-500">
-                    <div class="text-slate-500">[System Start] تم تشغيل المنصة بنجاح على سيرفر Render الخادمي...</div>
-                </div>
-            </div>
-
+            <button class="btn btn-purple" style="width: 100%; justify-content: center;" onclick="triggerTestTrade()">
+                ⚡ اختباري: تنفيذ صفقة آلياً الآن
+            </button>
         </div>
-    </main>
+    </div>
 
-    <!-- Footer -->
-    <footer class="bg-cardBg border-t border-cardBorder py-3 px-4 text-center text-xs text-slate-500">
-        منصة الحارس لتداول السكالبينغ السريع © 2026 - نظام تداول ذكي مخصص لفريمات 5m و 10m بدون تعقيد
-    </footer>
+    <!-- Active Trades Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3>مراقبة الصفقات النشطة (متزامنة مع السيرفر)</h3>
+            <span id="activeTradesCount" style="color: var(--accent-blue);">عدد الصفقات: 0</span>
+        </div>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>العملة</th>
+                        <th>نوع الصفقة</th>
+                        <th>سعر الدخول</th>
+                        <th>السعر الحالي</th>
+                        <th>الهدف (TP %)</th>
+                        <th>وقف الخسارة (SL)</th>
+                        <th>PnL المباشر ($ / %)</th>
+                        <th>موعد الانتهاء المتوقع (الرياض)</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="activeTradesBody">
+                    <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">لا توجد صفقات نشطة حالياً. الخادم يبحص عن الفرص وفق الشروط الصارمة...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-    <!-- Application Script -->
-    <script>
-        // State Variables
-        let currentSymbol = 'DOGE-USDT';
-        let currentTimeframe = '5m';
-        let chart, candlestickSeries;
-        let marketDataCache = {};
-        let activeTrades = [];
-        let closedTrades = [];
-        let isAutoBotActive = true;
-        let lastAutoTradeTime = 0;
-        let lastCandlesData = [];
-        let higherTimeframeCandles = [];
+    <!-- Closed Trades Split View -->
+    <div class="split-trades-grid">
+        <div class="card win-zone">
+            <div class="card-header">
+                <h3 style="color: var(--accent-green);">الصفقات الرابحة (Winning Trades)</h3>
+                <span id="totalWinsCount" class="pnl-positive">0 صفقات</span>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>العملة</th>
+                            <th>سعر الدخول</th>
+                            <th>سعر الخروج</th>
+                            <th>الربح ($)</th>
+                            <th>النسبة %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="winTradesBody">
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد صفقات رابحة بعد</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-        const OKX_FEE_RATE = 0.0010; 
+        <div class="card loss-zone">
+            <div class="card-header">
+                <h3 style="color: var(--accent-red);">الصفقات الخاسرة (Loss Trades)</h3>
+                <span id="totalLossesCount" class="pnl-negative">0 صفقات</span>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>العملة</th>
+                            <th>سعر الدخول</th>
+                            <th>سعر الخروج</th>
+                            <th>الخسارة ($)</th>
+                            <th>النسبة %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lossTradesBody">
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد صفقات خاسرة</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-        const basePricesMock = {
-            'BTC-USDT': { price: 68420.0, vol: 850000000 },
-            'ETH-USDT': { price: 3520.0, vol: 520000000 },
-            'SOL-USDT': { price: 152.20, vol: 280000000 },
-            'DOGE-USDT': { price: 0.12450, vol: 190000000 },
-            'PEPE-USDT': { price: 0.00000980, vol: 110000000 },
-            'XRP-USDT': { price: 0.5420, vol: 95000000 },
-            'AVAX-USDT': { price: 28.40, vol: 45000000 },
-            'SHIB-USDT': { price: 0.00001850, vol: 35000000 }
-        };
+</div>
 
-        const normalPairs = [
-            'BTC-USDT', 'ETH-USDT', 'SOL-USDT', 'DOGE-USDT', 
-            'PEPE-USDT', 'XRP-USDT', 'AVAX-USDT', 'SHIB-USDT'
-        ];
+<script>
+    let isAutoBotActive = true;
+    const chartContainer = document.getElementById('chart-container');
+    const chart = LightweightCharts.createChart(chartContainer, {
+        width: chartContainer.clientWidth,
+        height: 420,
+        layout: { background: { type: 'solid', color: '#12141d' }, textColor: '#90a4ae' },
+        grid: { vertLines: { color: '#1e2230' }, horzLines: { color: '#1e2230' } },
+    });
+    const candleSeries = chart.addCandlestickSeries();
 
-        const stableMajorPairs = [
-            'BTC-USDT', 'ETH-USDT', 'SOL-USDT', 'XRP-USDT', 'AVAX-USDT'
-        ];
-
-        function getActiveTrackedPairs() {
-            const scope = document.getElementById('marketScopeSelect')?.value || 'normal';
-            return scope === 'stable_majors' ? stableMajorPairs : normalPairs;
+    function loadChartDummyData() {
+        let now = Math.floor(Date.now() / 1000) - 300 * 50;
+        let data = [];
+        let price = 0.1425;
+        for (let i = 0; i < 50; i++) {
+            let open = price;
+            let high = open + Math.random() * (open * 0.002);
+            let low = open - Math.random() * (open * 0.002);
+            let close = low + Math.random() * (high - low);
+            data.push({ time: now + i * 300, open, high, low, close });
+            price = close;
         }
+        candleSeries.setData(data);
+    }
 
-        function handleMarketScopeChange() {
-            const scope = document.getElementById('marketScopeSelect').value;
-            const activeList = getActiveTrackedPairs();
+    async function syncServerState() {
+        try {
+            const res = await fetch('/api/state');
+            const data = await res.json();
+            if (data) {
+                // Ticker & Price
+                document.getElementById('livePriceHeader').innerText = `$${data.ticker.price.toFixed(4)}`;
 
-            if (scope === 'stable_majors') {
-                logMessage('🛡️ تم تفعيل وضع التداول على العملات القيادية والمستقرة عالية السيولة فقط.', 'warn');
-                if (!activeList.includes(currentSymbol)) {
-                    currentSymbol = 'BTC-USDT';
-                    symbolSelect.value = 'BTC-USDT';
-                    symbolSelect.dispatchEvent(new Event('change'));
-                }
-            } else {
-                logMessage('🌐 تم تفعيل الوضع العادي الشامل لمراقبة كافة الأوراق والعملات.', 'info');
+                // Balance Update
+                document.getElementById('balanceTotal').innerText = `${data.account_balance.total_usdt} USDT`;
+                document.getElementById('balanceFree').innerText = `${data.account_balance.free_usdt} USDT`;
+                document.getElementById('balanceUsed').innerText = `${data.account_balance.used_usdt} USDT`;
+
+                // Engine & Conditions Status
+                document.getElementById('engineStatusText').innerText = data.engine_status;
+                document.getElementById('condRsi').innerText = data.conditions.rsi_status;
+                document.getElementById('condVolume').innerText = data.conditions.volume_status;
+                document.getElementById('condTrend').innerText = data.conditions.trend_status;
+
+                // Render Trades
+                renderActiveTrades(data.active_trades);
+                renderClosedTrades(data.closed_trades);
             }
-
-            scanMarketFullReport();
-        }
-
-        const symbolSelect = document.getElementById('symbolSelect');
-        const livePriceEl = document.getElementById('livePrice');
-        const liveChangeEl = document.getElementById('liveChange');
-        const tickerHighEl = document.getElementById('tickerHigh');
-        const tickerLowEl = document.getElementById('tickerLow');
-        const logsConsole = document.getElementById('logsConsole');
-
-        function updateRiyadhClock() {
-            const now = new Date();
-            const riyadhTimeStr = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Riyadh', hour12: false });
-            document.getElementById('riyadhClock').innerText = `${riyadhTimeStr} (الرياض)`;
-        }
-        setInterval(updateRiyadhClock, 1000);
-
-        function calculateRSI(closes, period = 14) {
-            if (closes.length < period + 1) return 50;
-            let gains = 0, losses = 0;
-            for (let i = closes.length - period; i < closes.length; i++) {
-                const diff = closes[i] - closes[i - 1];
-                if (diff >= 0) gains += diff;
-                else losses -= diff;
-            }
-            const avgGain = gains / period;
-            const avgLoss = losses / period;
-            if (avgLoss === 0) return 100;
-            const rs = avgGain / avgLoss;
-            return 100 - (100 / (1 + rs));
-        }
-
-        function calculateEMA(closes, period = 50) {
-            if (closes.length === 0) return closes[closes.length - 1] || 0;
-            if (closes.length < period) {
-                const sum = closes.reduce((a, b) => a + b, 0);
-                return sum / closes.length;
-            }
-            const k = 2 / (period + 1);
-            let ema = closes[0];
-            for (let i = 1; i < closes.length; i++) {
-                ema = (closes[i] * k) + (ema * (1 - k));
-            }
-            return ema;
-        }
-
-        function calculateVWAP(candles) {
-            if (!candles || candles.length === 0) return 0;
-            let cumulativeTPV = 0;
-            let cumulativeVolume = 0;
-            candles.forEach(c => {
-                const typicalPrice = (c.high + c.low + c.close) / 3;
-                const vol = c.volume || 1;
-                cumulativeTPV += typicalPrice * vol;
-                cumulativeVolume += vol;
-            });
-            return cumulativeVolume > 0 ? (cumulativeTPV / cumulativeVolume) : candles[candles.length - 1].close;
-        }
-
-        function checkDualTrendStatus(higherCandles) {
-            if (!higherCandles || higherCandles.length < 10) return { isBullish: true, label: "صاعد (مؤكد)" };
-            const closes = higherCandles.map(c => c.close);
-            const ema20 = calculateEMA(closes, 20);
-            const ema50 = calculateEMA(closes, 50);
-            const lastClose = closes[closes.length - 1];
-
-            const isBullish = lastClose >= ema20 && ema20 >= ema50;
-            return {
-                isBullish: isBullish,
-                label: isBullish ? "🟢 صاعد (مؤكد)" : "🔴 هابط (محيّد)"
-            };
-        }
-
-        function evaluateSmartScalpEngine(candles, higherCandles = []) {
-            if (!candles || candles.length < 15) {
-                return { signal: false, reason: "بيانات الشموع جاري تحديثها...", rsi: 50, ema: 0, vwap: 0, dualTrend: true };
-            }
-
-            const toggleDualTrend = document.getElementById('toggleDualTrend')?.checked ?? true;
-            const toggleVwapSuperTrend = document.getElementById('toggleVwapSuperTrend')?.checked ?? true;
-            const toggleSpreadLiquidity = document.getElementById('toggleSpreadLiquidity')?.checked ?? true;
-            const mode = document.getElementById('botStrategyMode')?.value || 'flexible';
-
-            const closes = candles.map(c => c.close);
-            const rsi = calculateRSI(closes, 14);
-            const ema50 = calculateEMA(closes, 50);
-            const vwap = calculateVWAP(candles);
-            const currentCandle = candles[candles.length - 1];
-
-            const dualTrend = checkDualTrendStatus(higherCandles.length ? higherCandles : candles);
-
-            let isEntrySignal = true;
-            let rejectionReasons = [];
-
-            if (toggleDualTrend && !dualTrend.isBullish) {
-                isEntrySignal = false;
-                rejectionReasons.push("الاتجاه العام على فريم 10m/15m هابط (حظر الشراء)");
-            }
-
-            const isAboveVwap = currentCandle.close >= vwap;
-            if (toggleVwapSuperTrend && !isAboveVwap) {
-                isEntrySignal = false;
-                rejectionReasons.push("السعر أسفل خط VWAP/SuperTrend للـ 5 دقائق");
-            }
-
-            if (toggleSpreadLiquidity && marketDataCache.spreadPct) {
-                const targetTpPct = parseFloat(document.getElementById('targetTpInput').value) || 0.25;
-                if (marketDataCache.spreadPct > targetTpPct * 0.4) {
-                    isEntrySignal = false;
-                    rejectionReasons.push(`السبريد (${marketDataCache.spreadPct.toFixed(3)}%) مرتفع جداً`);
-                }
-            }
-
-            if (mode === 'flexible') {
-                if (rsi > 58) {
-                    isEntrySignal = false;
-                    rejectionReasons.push(`RSI (${rsi.toFixed(1)}) مرتفع جداً للدخول`);
-                }
-            } else if (mode === 'balanced') {
-                if (rsi > 48 || currentCandle.close < ema50) {
-                    isEntrySignal = false;
-                    rejectionReasons.push("شروط المود المحافظ لم تكتمل (RSI > 48 أو أسفل EMA50)");
-                }
-            } else {
-                if (rsi > 42 || !isAboveVwap || !dualTrend.isBullish) {
-                    isEntrySignal = false;
-                    rejectionReasons.push("شروط المود الصارم جداً غير متحققة");
-                }
-            }
-
-            return {
-                signal: isEntrySignal,
-                rsi: rsi,
-                ema: ema50,
-                vwap: vwap,
-                dualTrend: dualTrend,
-                isAboveVwap: isAboveVwap,
-                reason: isEntrySignal ? "جميع شروط التحليل متطابقة (إشارة دخول مؤكدة على 5m)" : rejectionReasons.join(" • ")
-            };
-        }
-
-        function updateTradeCalculations() {
-            const budget = parseFloat(document.getElementById('tradeBudgetInput').value) || 100;
-            const targetTpPct = parseFloat(document.getElementById('targetTpInput').value) || 0.25;
-            const targetSlPct = parseFloat(document.getElementById('targetSlInput').value) || 0.20;
-
-            const grossProfitUsdt = budget * (targetTpPct / 100);
-            const okxFeeUsdt = budget * (OKX_FEE_RATE * 2);
-            const netProfitUsdt = grossProfitUsdt - okxFeeUsdt;
-
-            document.getElementById('grossProfitUsdt').innerText = `+$${grossProfitUsdt.toFixed(3)} (+${targetTpPct}%)`;
-            document.getElementById('okxFeeUsdt').innerText = `-$${okxFeeUsdt.toFixed(3)} (0.2% دخول وخروج)`;
-            
-            const netProfitEl = document.getElementById('netProfitUsdt');
-            netProfitEl.innerText = `${netProfitUsdt >= 0 ? '+' : ''}$${netProfitUsdt.toFixed(3)}`;
-            netProfitEl.className = `font-mono font-bold text-sm ${netProfitUsdt >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
-
-            document.getElementById('spreadThresholdNote').innerText = `الحد الأقصى المسموح للسبريد لـ TP ${targetTpPct}%: ${(targetTpPct * 0.4).toFixed(3)}%`;
-        }
-
-        function triggerTestSignal() {
-            logMessage(`🧪 [اختبار المحرك]: تم إرسال إشارة اختبار لفتح صفقة تلقائية لـ ${currentSymbol}...`, 'warn');
-            const entryPrice = marketDataCache.lastPrice || basePricesMock[currentSymbol]?.price || 0.1245;
-            executeScalpTradeForSymbol(currentSymbol, entryPrice, 'تلقائي (تجريبي)');
-        }
-
-        function toggleAutoBot() {
-            isAutoBotActive = !isAutoBotActive;
-            const toggleBtn = document.getElementById('autoBotToggleBtn');
-            const botStatusHeader = document.getElementById('botStatusHeader');
-
-            if (isAutoBotActive) {
-                toggleBtn.className = "w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2 pulse-live";
-                toggleBtn.innerHTML = '<i class="fa-solid fa-power-off"></i> إيقاف التداول الآلي المباشر (مفعل حالياً)';
-                botStatusHeader.className = "text-emerald-400 font-bold flex items-center gap-1";
-                botStatusHeader.innerHTML = '<i class="fa-solid fa-play"></i> نشط';
-                logMessage('🟢 تم تفعيل محرك التداول الآلي بنجاح.', 'success');
-            } else {
-                toggleBtn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2";
-                toggleBtn.innerHTML = '<i class="fa-solid fa-play"></i> تشغيل التداول الآلي المباشر';
-                botStatusHeader.className = "text-amber-400 font-bold flex items-center gap-1";
-                botStatusHeader.innerHTML = '<i class="fa-solid fa-pause"></i> متوقف';
-                logMessage('🟡 تم إيقاف التداول الآلي المؤقت.', 'warn');
-            }
-        }
-
-        async function runAutoPilotMarketScanner() {
-            if (!isAutoBotActive) return;
-
-            const now = Date.now();
-            if (now - lastAutoTradeTime < 6000) return;
-            if (activeTrades.length >= 3) return;
-
-            const targetTpPct = parseFloat(document.getElementById('targetTpInput').value) || 0.25;
-            const maxAllowedSpread = targetTpPct * 0.4;
-            const MIN_HIGH_VOLUME = 20000000;
-            const currentTrackedPairs = getActiveTrackedPairs();
-
-            let sortedPairs = [];
-            for (let pair of currentTrackedPairs) {
-                let vol = basePricesMock[pair]?.vol || 50000000;
-                let price = basePricesMock[pair]?.price || 1.0;
-                let spread = 0.02;
-
-                try {
-                    const res = await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${pair}`);
-                    const json = await res.json();
-                    if (json.code === "0" && json.data.length > 0) {
-                        vol = parseFloat(json.data[0].volCcy24h);
-                        price = parseFloat(json.data[0].last);
-                        const bid = parseFloat(json.data[0].bidPx);
-                        const ask = parseFloat(json.data[0].askPx);
-                        spread = ((ask - bid) / ask * 100);
-                    }
-                } catch(e) {}
-
-                sortedPairs.push({ symbol: pair, vol: vol, price: price, spread: spread });
-            }
-
-            sortedPairs.sort((a, b) => b.vol - a.vol);
-
-            for (let pairObj of sortedPairs) {
-                const pair = pairObj.symbol;
-                if (activeTrades.some(t => t.symbol === pair)) continue;
-                if (pairObj.vol < MIN_HIGH_VOLUME) continue;
-                if (pairObj.spread > maxAllowedSpread) continue;
-
-                try {
-                    const candleRes = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${pair}&bar=${currentTimeframe}&limit=40`);
-                    const candleJson = await candleRes.json();
-                    let candles = [];
-
-                    if (candleJson.code === "0" && candleJson.data && candleJson.data.length > 0) {
-                        candles = candleJson.data.map(item => ({
-                            time: Math.floor(parseInt(item[0]) / 1000),
-                            open: parseFloat(item[1]),
-                            high: parseFloat(item[2]),
-                            low: parseFloat(item[3]),
-                            close: parseFloat(item[4]),
-                            volume: parseFloat(item[5] || 1000)
-                        })).sort((a, b) => a.time - b.time);
-                    } else {
-                        candles = generateMockCandlesForSymbol(pair, pairObj.price);
-                    }
-
-                    const analysis = evaluateSmartScalpEngine(candles, candles);
-
-                    if (analysis.signal) {
-                        lastAutoTradeTime = now;
-                        logMessage(`🔥 [إشارة 5m مؤكدة]: اكتشاف فرصة ممتازة في ${pair}! تنفيذ الصفقة تلقائياً...`, 'success');
-                        executeScalpTradeForSymbol(pair, pairObj.price, 'تلقائي (5m/10m)');
-                        
-                        if (currentSymbol !== pair) {
-                            symbolSelect.value = pair;
-                            symbolSelect.dispatchEvent(new Event('change'));
-                        }
-                        break;
-                    }
-                } catch (e) {}
-            }
-        }
-
-        function initChart() {
-            const chartContainer = document.getElementById('tvChart');
-            chartContainer.innerHTML = '';
-
-            chart = LightweightCharts.createChart(chartContainer, {
-                width: chartContainer.clientWidth,
-                height: chartContainer.clientHeight || 380,
-                layout: {
-                    background: { type: 'solid', color: '#0b0e14' },
-                    textColor: '#94a3b8',
-                },
-                grid: {
-                    vertLines: { color: '#1e293b' },
-                    horzLines: { color: '#1e293b' },
-                },
-                crosshair: {
-                    mode: LightweightCharts.CrosshairMode.Normal,
-                },
-                rightPriceScale: {
-                    borderColor: '#212d40',
-                },
-                timeScale: {
-                    borderColor: '#212d40',
-                    timeVisible: true,
-                    secondsVisible: false,
-                },
-            });
-
-            candlestickSeries = chart.addCandlestickSeries({
-                upColor: '#00c896',
-                downColor: '#ff4d4d',
-                borderVisible: false,
-                wickUpColor: '#00c896',
-                wickDownColor: '#ff4d4d',
-            });
-
-            window.addEventListener('resize', () => {
-                if (chart && chartContainer) {
-                    chart.applyOptions({
-                        width: chartContainer.clientWidth,
-                        height: chartContainer.clientHeight
-                    });
-                }
-            });
-        }
-
-        async function fetchCandles(instId, bar = '5m') {
-            try {
-                const url = `https://www.okx.com/api/v5/market/candles?instId=${instId}&bar=${bar}&limit=100`;
-                const res = await fetch(url);
-                const json = await res.json();
-
-                if (json.code === "0" && json.data && json.data.length > 0) {
-                    const formattedCandles = json.data.map(item => ({
-                        time: Math.floor(parseInt(item[0]) / 1000),
-                        open: parseFloat(item[1]),
-                        high: parseFloat(item[2]),
-                        low: parseFloat(item[3]),
-                        close: parseFloat(item[4]),
-                        volume: parseFloat(item[5] || item[6] || 1000)
-                    })).sort((a, b) => a.time - b.time);
-
-                    lastCandlesData = formattedCandles;
-                    candlestickSeries.setData(formattedCandles);
-
-                    fetchHigherTimeframeCandles(instId);
-                } else {
-                    generateFallbackCandles();
-                }
-            } catch (err) {
-                generateFallbackCandles();
-            }
-        }
-
-        async function fetchHigherTimeframeCandles(instId) {
-            try {
-                const higherBar = (currentTimeframe === '1m' || currentTimeframe === '5m') ? '10m' : '15m';
-                const url = `https://www.okx.com/api/v5/market/candles?instId=${instId}&bar=${higherBar}&limit=50`;
-                const res = await fetch(url);
-                const json = await res.json();
-
-                if (json.code === "0" && json.data && json.data.length > 0) {
-                    higherTimeframeCandles = json.data.map(item => ({
-                        time: Math.floor(parseInt(item[0]) / 1000),
-                        open: parseFloat(item[1]),
-                        high: parseFloat(item[2]),
-                        low: parseFloat(item[3]),
-                        close: parseFloat(item[4]),
-                        volume: parseFloat(item[5] || 1000)
-                    })).sort((a, b) => a.time - b.time);
-                }
-            } catch (e) {
-                higherTimeframeCandles = lastCandlesData;
-            }
-            runSmartEngineAnalysis();
-        }
-
-        async function fetchTicker(instId) {
-            try {
-                const url = `https://www.okx.com/api/v5/market/ticker?instId=${instId}`;
-                const res = await fetch(url);
-                const json = await res.json();
-
-                if (json.code === "0" && json.data && json.data.length > 0) {
-                    const data = json.data[0];
-                    const lastPrice = parseFloat(data.last);
-                    const open24h = parseFloat(data.open24h);
-                    const changePct = ((lastPrice - open24h) / open24h * 100).toFixed(2);
-                    const bid = parseFloat(data.bidPx);
-                    const ask = parseFloat(data.askPx);
-                    const vol24h = parseFloat(data.volCcy24h);
-
-                    renderTickerUI(lastPrice, changePct, parseFloat(data.high24h), parseFloat(data.low24h));
-
-                    const spreadPct = ((ask - bid) / ask * 100);
-                    const estVolatility = ((parseFloat(data.high24h) - parseFloat(data.low24h)) / lastPrice * 100 * 0.15);
-
-                    marketDataCache = {
-                        symbol: instId,
-                        lastPrice: lastPrice,
-                        bid: bid,
-                        ask: ask,
-                        spreadPct: spreadPct,
-                        vol24h: vol24h,
-                        volatility: estVolatility
-                    };
-
-                    runGuardianInspection(marketDataCache);
-                    updateAndCheckActiveTradesPrices();
-                } else {
-                    simulateTickerData(instId);
-                }
-            } catch (err) {
-                simulateTickerData(instId);
-            }
-        }
-
-        function renderTickerUI(price, changePct, high, low) {
-            livePriceEl.innerText = `$${price}`;
-            liveChangeEl.innerText = `${changePct >= 0 ? '+' : ''}${changePct}%`;
-            liveChangeEl.className = `text-xl font-bold font-mono ${changePct >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
-            tickerHighEl.innerText = high;
-            tickerLowEl.innerText = low;
-        }
-
-        function runSmartEngineAnalysis() {
-            if (lastCandlesData.length === 0) return;
-
-            const analysis = evaluateSmartScalpEngine(lastCandlesData, higherTimeframeCandles);
-
-            document.getElementById('rsiValDisplay').innerText = analysis.rsi ? analysis.rsi.toFixed(2) : '--';
-            document.getElementById('dualTrendDisplay').innerText = analysis.dualTrend ? analysis.dualTrend.label : '--';
-            document.getElementById('vwapStatusDisplay').innerText = analysis.isAboveVwap ? 'أعلى من VWAP (إيجابي)' : 'أسفل VWAP (سلبي)';
-            document.getElementById('vwapStatusDisplay').className = `font-mono font-bold ${analysis.isAboveVwap ? 'text-emerald-400' : 'text-amber-400'}`;
-
-            const actionEl = document.getElementById('aiAction');
-            const reasonEl = document.getElementById('aiReason');
-
-            if (analysis.signal) {
-                actionEl.innerText = "BUY / LONG (دخول 5m مؤكد)";
-                actionEl.className = "font-bold text-emerald-400 text-sm animate-pulse";
-                reasonEl.innerText = analysis.reason;
-            } else {
-                actionEl.innerText = "WAIT / HOLD (مراقبة فنية)";
-                actionEl.className = "font-bold text-amber-400 text-sm";
-                reasonEl.innerText = analysis.reason;
-            }
-
-            return analysis;
-        }
-
-        function runGuardianInspection(data) {
-            const spreadBar = document.getElementById('spreadBar');
-            const spreadVal = document.getElementById('spreadVal');
-            const volatilityBar = document.getElementById('volatilityBar');
-            const volatilityVal = document.getElementById('volatilityVal');
-            const volumeBar = document.getElementById('volumeBar');
-            const volumeVal = document.getElementById('volumeVal');
-            const statusBadge = document.getElementById('guardianStatusBadge');
-            const reasonsBox = document.getElementById('guardianReasons');
-
-            const targetTpPct = parseFloat(document.getElementById('targetTpInput').value) || 0.25;
-            const maxAllowedSpread = targetTpPct * 0.4;
-            const MIN_HIGH_VOLUME = 20000000;
-
-            const spread = data.spreadPct || 0.02;
-            const vol = data.volatility || 0.35;
-            const volume = data.vol24h || 150000000;
-
-            spreadVal.innerText = `${spread.toFixed(3)}%`;
-            spreadBar.style.width = `${Math.min((spread / (maxAllowedSpread * 2)) * 100, 100)}%`;
-            spreadBar.className = `h-full transition-all duration-300 ${spread <= maxAllowedSpread ? 'bg-emerald-500' : 'bg-red-500'}`;
-
-            volatilityVal.innerText = `${vol.toFixed(2)}%`;
-            volatilityBar.style.width = `${Math.min((vol / 1.0) * 100, 100)}%`;
-            volatilityBar.className = `h-full transition-all duration-300 ${vol >= 0.15 ? 'bg-blue-500' : 'bg-amber-500'}`;
-
-            const volInMillions = (volume / 1_000_000).toFixed(1);
-            volumeVal.innerText = `$${volInMillions}M`;
-            volumeBar.style.width = `${Math.min((volume / 500_000_000) * 100, 100)}%`;
-            volumeBar.className = `h-full transition-all duration-300 ${volume >= MIN_HIGH_VOLUME ? 'bg-purple-500' : 'bg-red-500'}`;
-
-            let isSuitable = true;
-            let reasons = [];
-
-            if (spread > maxAllowedSpread) {
-                isSuitable = false;
-                reasons.push(`🛑 السبريد مرتفع (${spread.toFixed(3)}% > ${maxAllowedSpread.toFixed(3)}%)`);
-            }
-            if (vol < 0.15) {
-                isSuitable = false;
-                reasons.push(`🛑 التذبذب ضعيف (${vol.toFixed(2)}% < 0.15%)`);
-            }
-            if (volume < MIN_HIGH_VOLUME) {
-                isSuitable = false;
-                reasons.push(`🛑 السيولة غير كافية ($${volInMillions}M < $20M)`);
-            }
-
-            reasonsBox.classList.remove('hidden');
-            if (isSuitable) {
-                statusBadge.innerText = '✅ سيولة عالية صالحة';
-                statusBadge.className = 'text-xs px-2.5 py-1 rounded font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-                reasonsBox.innerHTML = `<span class="text-emerald-400 font-bold">✅ جاهزة للتداول الفوري:</span> سيولة ضخمة ($${volInMillions}M) وسبريد آمن (${spread.toFixed(3)}%).`;
-            } else {
-                statusBadge.innerText = '🛑 غير صالحة حالياً';
-                statusBadge.className = 'text-xs px-2.5 py-1 rounded font-bold bg-red-500/20 text-red-400 border border-red-500/30';
-                reasonsBox.innerHTML = `<span class="text-red-400 font-bold">تنبيهات الحارس:</span><br>` + reasons.join('<br>');
-            }
-
-            return isSuitable;
-        }
-
-        async function scanMarketFullReport() {
-            const tbody = document.getElementById('comprehensiveReportTbody');
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-blue-400 animate-pulse"><i class="fa-solid fa-spinner fa-spin"></i> جارٍ فحص اتجاه الـ 10m والسيولة للعملات...</td></tr>`;
-
-            let results = [];
-            const targetTpPct = parseFloat(document.getElementById('targetTpInput').value) || 0.25;
-            const currentTrackedPairs = getActiveTrackedPairs();
-
-            for (let pair of currentTrackedPairs) {
-                try {
-                    const res = await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${pair}`);
-                    const json = await res.json();
-                    if (json.code === "0" && json.data.length > 0) {
-                        const d = json.data[0];
-                        const last = parseFloat(d.last);
-                        const bid = parseFloat(d.bidPx);
-                        const ask = parseFloat(d.askPx);
-                        const spread = ((ask - bid) / ask * 100);
-                        const vol24h = parseFloat(d.volCcy24h);
-
-                        results.push({
-                            symbol: pair,
-                            price: last,
-                            spread: spread,
-                            dualTrendLabel: '🟢 صاعد (10m)',
-                            volume: vol24h
-                        });
-                    } else {
-                        throw new Error("API Error");
-                    }
-                } catch (e) {
-                    const baseData = basePricesMock[pair] || { price: 1.0, vol: 50000000 };
-                    results.push({
-                        symbol: pair,
-                        price: baseData.price,
-                        spread: 0.02,
-                        dualTrendLabel: '🟢 صاعد (10m)',
-                        volume: baseData.vol
-                    });
-                }
-            }
-
-            results.sort((a, b) => b.volume - a.volume);
-
-            tbody.innerHTML = '';
-            results.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-darkBg/60 transition";
-                
-                let badgeClass = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-                let badgeText = "ممتاز لـ 5m";
-                if (item.volume < 50000000) {
-                    badgeClass = "bg-purple-500/20 text-purple-300 border-purple-500/30";
-                    badgeText = "جيد جداً";
-                }
-
-                tr.innerHTML = `
-                    <td class="p-2.5 font-bold flex items-center gap-2">
-                        <span class="w-5 h-5 rounded-full ${index === 0 ? 'bg-amber-500 text-black font-extrabold' : 'bg-cardBorder text-slate-300'} text-[10px] flex items-center justify-center font-mono">${index + 1}</span>
-                        ${item.symbol}
-                    </td>
-                    <td class="p-2.5 font-mono">$${item.price}</td>
-                    <td class="p-2.5 font-mono ${item.spread <= (targetTpPct * 0.4) ? 'text-emerald-400' : 'text-red-400'}">${item.spread.toFixed(3)}%</td>
-                    <td class="p-2.5 font-mono text-emerald-400 font-bold">${item.dualTrendLabel}</td>
-                    <td class="p-2.5 font-mono font-bold text-emerald-400">$${(item.volume / 1000000).toFixed(1)}M</td>
-                    <td class="p-2.5"><span class="px-2 py-0.5 text-[10px] rounded border font-bold ${badgeClass}">${badgeText}</span></td>
-                    <td class="p-2.5 text-center">
-                        <button onclick="selectPairFromReport('${item.symbol}')" class="bg-blue-600/30 hover:bg-blue-600 text-blue-200 text-[11px] px-2.5 py-1 rounded transition">عرض بالشارت</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            logMessage(`📊 تم فرز وتحديث تقرير الفريمات (5m / 10m) بناءً على أولوية السيولة.`);
-        }
-
-        function selectPairFromReport(symbol) {
-            symbolSelect.value = symbol;
-            symbolSelect.dispatchEvent(new Event('change'));
-            logMessage(`🎯 تم اختيار العملة ${symbol} للعرض المباشر.`);
-        }
-
-        function executeScalpTrade(mode = 'يدوي') {
-            const entryPrice = marketDataCache.lastPrice || basePricesMock[currentSymbol]?.price || 0.1245;
-            executeScalpTradeForSymbol(currentSymbol, entryPrice, mode);
-        }
-
-        function executeScalpTradeForSymbol(symbol, entryPrice, mode = 'تلقائي') {
-            const budget = parseFloat(document.getElementById('tradeBudgetInput').value) || 100;
-            const targetTpPct = parseFloat(document.getElementById('targetTpInput').value) || 0.25;
-            const targetSlPct = parseFloat(document.getElementById('targetSlInput').value) || 0.20;
-            
-            const tpPrice = entryPrice * (1 + (targetTpPct / 100));
-            const slPrice = entryPrice * (1 - (targetSlPct / 100));
-
-            const now = new Date();
-            const futureTime = new Date(now.getTime() + 10 * 60000);
-            const expTimeStr = futureTime.toLocaleTimeString('en-US', { timeZone: 'Asia/Riyadh', hour12: false });
-
-            const newTrade = {
-                id: Date.now(),
-                symbol: symbol,
-                type: 'BUY / LONG',
-                mode: mode,
-                timeframe: currentTimeframe,
-                budget: budget,
-                entryPrice: entryPrice,
-                currentPrice: entryPrice,
-                highestPriceSeen: entryPrice,
-                tpPct: targetTpPct,
-                slPct: targetSlPct,
-                tpPrice: tpPrice,
-                slPrice: slPrice,
-                isBreakEvenSecured: false,
-                expTime: expTimeStr,
-                status: 'ACTIVE'
-            };
-
-            activeTrades.push(newTrade);
-            logMessage(`🚀 [صفقة جديدة - ${symbol} (${currentTimeframe})]: شراء بسعر $${entryPrice} | الهدف: +${targetTpPct}%`, 'success');
-            renderActiveTradesTable();
-        }
-
-        function updateAndCheckActiveTradesPrices() {
-            if (activeTrades.length === 0) return;
-
-            let tradesToClose = [];
-            const isTrailingStopEnabled = document.getElementById('trailingStopToggle')?.checked ?? true;
-
-            activeTrades.forEach(trade => {
-                if (trade.symbol === currentSymbol) {
-                    trade.currentPrice = marketDataCache.lastPrice;
-                }
-
-                if (trade.currentPrice > trade.highestPriceSeen) {
-                    trade.highestPriceSeen = trade.currentPrice;
-                }
-
-                const currentProfitPct = ((trade.currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
-                const peakProfitPct = ((trade.highestPriceSeen - trade.entryPrice) / trade.entryPrice) * 100;
-
-                if (isTrailingStopEnabled) {
-                    if (peakProfitPct >= 0.15 && !trade.isBreakEvenSecured) {
-                        trade.isBreakEvenSecured = true;
-                        trade.slPrice = trade.entryPrice * 1.0005;
-                        logMessage(`🛡️ [الوقف المتحرك]: تم تأمين نقطة الدخول (Break-even) لصفقة ${trade.symbol} بعد تحقيق +${peakProfitPct.toFixed(2)}%!`, 'warn');
-                    }
-
-                    if (trade.isBreakEvenSecured && peakProfitPct > 0.20) {
-                        const newDynamicSl = trade.highestPriceSeen * (1 - 0.0010);
-                        if (newDynamicSl > trade.slPrice) {
-                            trade.slPrice = newDynamicSl;
-                        }
-                    }
-                }
-
-                if (currentProfitPct >= trade.tpPct) {
-                    tradesToClose.push({ trade: trade, reason: 'TARGET_TP', pnlPct: currentProfitPct });
-                } else if (trade.currentPrice <= trade.slPrice) {
-                    tradesToClose.push({ trade: trade, reason: trade.isBreakEvenSecured ? 'TRAILING_STOP' : 'STOP_LOSS', pnlPct: currentProfitPct });
-                }
-            });
-
-            tradesToClose.forEach(item => {
-                closeTradeAutomatically(item.trade, item.reason, item.pnlPct);
-            });
-
-            renderActiveTradesTable();
-        }
-
-        function closeTradeAutomatically(trade, reason, achievedPct) {
-            const index = activeTrades.findIndex(t => t.id === trade.id);
-            if (index !== -1) {
-                activeTrades.splice(index, 1);
-                
-                const grossPnlUsdt = trade.budget * (achievedPct / 100);
-                const feeUsdt = trade.budget * (OKX_FEE_RATE * 2);
-                const netPnlUsdt = (grossPnlUsdt - feeUsdt).toFixed(3);
-
-                let reasonText = 'هدف ربح (TP)';
-                if (reason === 'TRAILING_STOP') reasonText = 'وقف متحرك (تأمين)';
-                if (reason === 'STOP_LOSS') reasonText = 'وقف خسارة (SL)';
-
-                const historyItem = {
-                    ...trade,
-                    exitPrice: trade.currentPrice,
-                    pnlPct: achievedPct,
-                    pnlUsdt: parseFloat(netPnlUsdt),
-                    closeReason: reasonText,
-                    closeTime: new Date().toLocaleTimeString('ar-SA', { hour12: false })
-                };
-
-                closedTrades.unshift(historyItem);
-
-                if (reason === 'TARGET_TP') {
-                    logMessage(`💰 🎉 [إغلاق آلي ناجح]: تم تحقيق الهدف لـ ${trade.symbol} (+${achievedPct.toFixed(2)}%)! الصافي بعد رسوم OKX: +$${netPnlUsdt}`, 'success');
-                } else if (reason === 'TRAILING_STOP') {
-                    logMessage(`📈 🛡️ [خروج بحماية الوقف المتحرك]: إغلاق صفقة ${trade.symbol} بتأمين أرباح صافية +$${netPnlUsdt}.`, 'success');
-                } else {
-                    logMessage(`🛑 ⚠️ [وقف الخسارة]: خروج من ${trade.symbol} عند (${achievedPct.toFixed(2)}%).`, 'warn');
-                }
-
-                renderClosedTradesTables();
-            }
-        }
-
-        function renderClosedTradesTables() {
-            const winTbody = document.getElementById('winningTradesTbody');
-            const lossTbody = document.getElementById('losingTradesTbody');
-
-            const winners = closedTrades.filter(t => t.pnlUsdt >= 0);
-            const losers = closedTrades.filter(t => t.pnlUsdt < 0);
-
-            document.getElementById('winCountBadge').innerText = winners.length;
-            document.getElementById('lossCountBadge').innerText = losers.length;
-
-            const totalWinUsdt = winners.reduce((sum, t) => sum + t.pnlUsdt, 0);
-            const totalLossUsdt = losers.reduce((sum, t) => sum + Math.abs(t.pnlUsdt), 0);
-            const netPnl = totalWinUsdt - totalLossUsdt;
-
-            document.getElementById('winningPnlTotal').innerText = `+$${totalWinUsdt.toFixed(2)}`;
-            document.getElementById('losingPnlTotal').innerText = `-$${totalLossUsdt.toFixed(2)}`;
-            
-            const netBadge = document.getElementById('netPnlBadge');
-            netBadge.innerText = `${netPnl >= 0 ? '+' : ''}$${netPnl.toFixed(2)}`;
-            netBadge.className = `font-bold ${netPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
-
-            if (winners.length === 0) {
-                winTbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-500">لا توجد صفقات رابحة بعد</td></tr>`;
-            } else {
-                winTbody.innerHTML = '';
-                winners.forEach(t => {
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-darkBg/80 transition";
-                    tr.innerHTML = `
-                        <td class="p-1.5 font-bold text-slate-200">${t.symbol}</td>
-                        <td class="p-1.5 font-mono text-slate-400">$${t.entryPrice} ➔ $${t.exitPrice}</td>
-                        <td class="p-1.5 font-mono font-bold text-emerald-400">+$${t.pnlUsdt.toFixed(3)}</td>
-                        <td class="p-1.5 text-center"><span class="bg-emerald-500/20 text-emerald-400 text-[9px] px-1.5 py-0.5 rounded border border-emerald-500/30">${t.closeReason}</span></td>
-                    `;
-                    winTbody.appendChild(tr);
-                });
-            }
-
-            if (losers.length === 0) {
-                lossTbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-500">لا توجد صفقات خاسرة بعد</td></tr>`;
-            } else {
-                lossTbody.innerHTML = '';
-                losers.forEach(t => {
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-darkBg/80 transition";
-                    tr.innerHTML = `
-                        <td class="p-1.5 font-bold text-slate-200">${t.symbol}</td>
-                        <td class="p-1.5 font-mono text-slate-400">$${t.entryPrice} ➔ $${t.exitPrice}</td>
-                        <td class="p-1.5 font-mono font-bold text-red-400">-$${Math.abs(t.pnlUsdt).toFixed(3)}</td>
-                        <td class="p-1.5 text-center"><span class="bg-red-500/20 text-red-400 text-[9px] px-1.5 py-0.5 rounded border border-red-500/30">${t.closeReason}</span></td>
-                    `;
-                    lossTbody.appendChild(tr);
-                });
-            }
-        }
-
-        function renderActiveTradesTable() {
-            const tbody = document.getElementById('activeTradesTbody');
-            const countEl = document.getElementById('activeTradesCount');
-            countEl.innerText = activeTrades.length;
-
-            if (activeTrades.length === 0) {
-                tbody.innerHTML = `
-                    <tr id="noActiveTradesRow">
-                        <td colspan="9" class="text-center py-6 text-slate-500">لا توجد صفقات نشطة حالياً. البوت يفحص جميع العملات تلقائياً على فريم الـ 5m و 10m.</td>
-                    </tr>`;
-                return;
-            }
-
-            tbody.innerHTML = '';
-            activeTrades.forEach(trade => {
-                const diffPct = ((trade.currentPrice - trade.entryPrice) / trade.entryPrice * 100);
-                const grossPnl = trade.budget * (diffPct / 100);
-                const feeUsdt = trade.budget * (OKX_FEE_RATE * 2);
-                const netPnlUsdt = (grossPnl - feeUsdt).toFixed(3);
-                const isProfitable = netPnlUsdt >= 0;
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-darkBg/60 transition";
-                tr.innerHTML = `
-                    <td class="p-2.5 font-bold">${trade.symbol}</td>
-                    <td class="p-2.5"><span class="bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded font-mono text-[10px] font-bold">${trade.timeframe}</span></td>
-                    <td class="p-2.5 font-mono">$${trade.entryPrice}</td>
-                    <td class="p-2.5 font-mono font-bold ${isProfitable ? 'text-emerald-400' : 'text-red-400'}">$${trade.currentPrice}</td>
-                    <td class="p-2.5 font-mono text-emerald-400 font-bold">$${trade.tpPrice.toFixed(5)} (+${trade.tpPct}%)</td>
-                    <td class="p-2.5 font-mono text-amber-400 font-bold">$${trade.slPrice.toFixed(5)}</td>
-                    <td class="p-2.5 font-mono font-bold ${isProfitable ? 'text-emerald-400' : 'text-red-400'}">
-                        ${isProfitable ? '+' : ''}$${netPnlUsdt} (${diffPct.toFixed(2)}%)
-                    </td>
-                    <td class="p-2.5">
-                        ${trade.isBreakEvenSecured ? 
-                            '<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded text-[10px] font-bold">🛡️ مؤمنة (Break-even)</span>' : 
-                            '<span class="text-slate-500 text-[10px]">جاري التتبع</span>'}
-                    </td>
-                    <td class="p-2.5 text-center">
-                        <button onclick="closeTradeManually(${trade.id})" class="bg-red-500/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 text-[10px] px-2.5 py-1 rounded transition font-bold">
-                            إغلاق
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function closeTradeManually(tradeId) {
-            const tradeIndex = activeTrades.findIndex(t => t.id === tradeId);
-            if (tradeIndex !== -1) {
-                const closed = activeTrades[tradeIndex];
-                const diffPct = ((closed.currentPrice - closed.entryPrice) / closed.entryPrice * 100);
-                
-                closeTradeAutomatically(closed, diffPct >= 0 ? 'TARGET_TP' : 'STOP_LOSS', diffPct);
-                logMessage(`🛑 تم إغلاق الصفقة يدويًا لـ ${closed.symbol} عند سعر $${closed.currentPrice}`, 'warn');
-            }
-        }
-
-        symbolSelect.addEventListener('change', (e) => {
-            currentSymbol = e.target.value;
-            document.getElementById('chartTitle').innerText = `شارت الشموع اليابانية الحقيقي - OKX (${currentSymbol})`;
-            logMessage(`🔄 تغيير زوج التداول إلى ${currentSymbol}...`);
-            fetchCandles(currentSymbol, currentTimeframe);
-            fetchTicker(currentSymbol);
+        } catch (e) {}
+    }
+
+    async function updateServerSettings() {
+        const symbol = document.getElementById('symbolSelect').value;
+        const timeframe = document.getElementById('timeframeSelect').value;
+        const budget = parseFloat(document.getElementById('tradeBudget').value) || 100;
+        const targetPct = parseFloat(document.getElementById('targetProfitPct').value) || 0.10;
+
+        await fetch('/api/control', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ is_running: isAutoBotActive, symbol, timeframe, trade_budget: budget, target_pct: targetPct })
         });
+    }
 
-        function setTimeframe(tf) {
-            currentTimeframe = tf;
-            document.querySelectorAll('.tf-btn').forEach(btn => {
-                if (btn.innerText.includes(tf)) {
-                    btn.className = 'tf-btn bg-cardBorder text-emerald-400 font-bold px-2.5 py-1 rounded transition border border-emerald-500/30';
-                } else {
-                    btn.className = 'tf-btn text-slate-400 hover:text-white px-2.5 py-1 rounded transition';
-                }
-            });
-            logMessage(`⏱️ تم تغيير الفريم إلى ${tf}`);
-            fetchCandles(currentSymbol, currentTimeframe);
-            scanMarketFullReport();
+    async function triggerTestTrade() {
+        const symbol = document.getElementById('symbolSelect').value;
+        const budget = parseFloat(document.getElementById('tradeBudget').value) || 100;
+        const targetPct = parseFloat(document.getElementById('targetProfitPct').value) || 0.10;
+
+        await fetch('/api/execute_trade', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ symbol, budget, target_pct: targetPct })
+        });
+        syncServerState();
+    }
+
+    async function closeTradeManual(tradeId) {
+        await fetch('/api/close_trade', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ trade_id: tradeId, reason: 'إغلاق يدوي' })
+        });
+        syncServerState();
+    }
+
+    function renderActiveTrades(trades) {
+        let tbody = document.getElementById('activeTradesBody');
+        document.getElementById('activeTradesCount').innerText = `عدد الصفقات: ${trades.length}`;
+
+        if (trades.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">لا توجد صفقات نشطة حالياً. الخادم يبحث عن الفرص وفق الشروط الصارمة...</td></tr>`;
+            return;
         }
 
-        function logMessage(msg, type = 'info') {
-            const time = new Date().toLocaleTimeString('ar-SA');
-            let colorClass = 'text-slate-300';
-            if (type === 'success') colorClass = 'text-emerald-400 font-bold';
-            if (type === 'warn') colorClass = 'text-amber-400';
-            if (type === 'error') colorClass = 'text-red-400 font-bold';
+        tbody.innerHTML = trades.map(trade => {
+            let pnlClass = trade.pnlPct >= 0 ? 'pnl-positive' : 'pnl-negative';
+            return `
+                <tr>
+                    <td><b>${trade.symbol}</b></td>
+                    <td><span class="signal-badge badge-buy">${trade.type}</span></td>
+                    <td>${trade.entryPrice.toFixed(4)}</td>
+                    <td>${trade.currentPrice.toFixed(4)}</td>
+                    <td>+${trade.targetPct.toFixed(2)}% (${trade.targetPrice.toFixed(4)})</td>
+                    <td>${trade.stopLossPrice.toFixed(4)}</td>
+                    <td class="${pnlClass}">${trade.pnlUsdt >= 0 ? '+' : ''}${trade.pnlUsdt.toFixed(2)}$ (${trade.pnlPct.toFixed(2)}%)</td>
+                    <td>${trade.expectedExit}</td>
+                    <td><button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="closeTradeManual(${trade.id})">إيقاف</button></td>
+                </tr>
+            `;
+        }).join('');
+    }
 
-            const item = document.createElement('div');
-            item.className = colorClass;
-            item.innerHTML = `<span class="text-slate-500 text-[10px]">[${time}]</span> ${msg}`;
-            logsConsole.prepend(item);
+    function renderClosedTrades(closedTrades) {
+        let winBody = document.getElementById('winTradesBody');
+        let lossBody = document.getElementById('lossTradesBody');
+
+        let wins = closedTrades.filter(t => t.pnlPct >= 0);
+        let losses = closedTrades.filter(t => t.pnlPct < 0);
+
+        document.getElementById('totalWinsCount').innerText = `${wins.length} صفقات`;
+        document.getElementById('totalLossesCount').innerText = `${losses.length} صفقات`;
+
+        winBody.innerHTML = wins.length === 0 
+            ? `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد صفقات رابحة بعد</td></tr>`
+            : wins.map(t => `
+                <tr>
+                    <td><b>${t.symbol}</b></td>
+                    <td>${t.entryPrice.toFixed(4)}</td>
+                    <td>${t.exitPrice.toFixed(4)}</td>
+                    <td class="pnl-positive">+${t.pnlUsdt.toFixed(2)}$</td>
+                    <td class="pnl-positive">+${t.pnlPct.toFixed(2)}%</td>
+                </tr>
+            `).join('');
+
+        lossBody.innerHTML = losses.length === 0
+            ? `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد صفقات خاسرة</td></tr>`
+            : losses.map(t => `
+                <tr>
+                    <td><b>${t.symbol}</b></td>
+                    <td>${t.entryPrice.toFixed(4)}</td>
+                    <td>${t.exitPrice.toFixed(4)}</td>
+                    <td class="pnl-negative">${t.pnlUsdt.toFixed(2)}$</td>
+                    <td class="pnl-negative">${t.pnlPct.toFixed(2)}%</td>
+                </tr>
+            `).join('');
+    }
+
+    function toggleAutoBot() {
+        isAutoBotActive = !isAutoBotActive;
+        let btn = document.getElementById('autoBotBtn');
+        if (isAutoBotActive) {
+            btn.className = 'btn btn-success';
+            btn.innerText = '🤖 التداول الآلي: مفعّل (Auto-Pilot)';
+        } else {
+            btn.className = 'btn btn-danger';
+            btn.innerText = '⏸️ التداول الآلي: متوقف';
         }
+        updateServerSettings();
+    }
 
-        function clearLogs() {
-            logsConsole.innerHTML = '<div class="text-slate-500">[System Cleared] تم مسح السجل...</div>';
-        }
+    loadChartDummyData();
+    setInterval(syncServerState, 2500);
 
-        function simulateTickerData(instId) {
-            const defaultObj = basePricesMock[instId] || { price: 1.0, vol: 50000000 };
-            const price = defaultObj.price;
-            const variance = (Math.random() - 0.49) * (price * 0.002);
-            const livePrice = parseFloat((price + variance).toFixed(instId.includes('PEPE') || instId.includes('SHIB') ? 8 : 4));
-            const spread = 0.02;
-            
-            renderTickerUI(livePrice, "2.45", (livePrice * 1.03).toFixed(4), (livePrice * 0.97).toFixed(4));
+    window.addEventListener('resize', () => {
+        chart.applyOptions({ width: chartContainer.clientWidth });
+    });
+</script>
 
-            marketDataCache = {
-                symbol: instId,
-                lastPrice: livePrice,
-                bid: livePrice * (1 - spread/100),
-                ask: livePrice * (1 + spread/100),
-                spreadPct: spread,
-                vol24h: defaultObj.vol,
-                volatility: 0.42
-            };
-
-            runGuardianInspection(marketDataCache);
-            updateAndCheckActiveTradesPrices();
-        }
-
-        function generateFallbackCandles() {
-            const priceData = basePricesMock[currentSymbol] || { price: 0.1245 };
-            let candles = generateMockCandlesForSymbol(currentSymbol, priceData.price);
-            lastCandlesData = candles;
-            higherTimeframeCandles = candles;
-            if (candlestickSeries) {
-                candlestickSeries.setData(candles);
-            }
-            runSmartEngineAnalysis();
-        }
-
-        function generateMockCandlesForSymbol(symbol, basePrice) {
-            let baseTime = Math.floor(Date.now() / 1000) - 80 * 300;
-            let candles = [];
-            let price = basePrice;
-
-            for (let i = 0; i < 80; i++) {
-                let open = price + (Math.random() - 0.48) * (price * 0.004);
-                let high = open + Math.random() * (price * 0.002);
-                let low = open - Math.random() * (price * 0.002);
-                let close = (high + low) / 2;
-                candles.push({ time: baseTime + i * 300, open, high, low, close, volume: Math.floor(Math.random() * 50000) + 10000 });
-                price = close;
-            }
-            return candles;
-        }
-
-        window.onload = function() {
-            initChart();
-            updateTradeCalculations();
-            updateRiyadhClock();
-            fetchCandles(currentSymbol, currentTimeframe);
-            fetchTicker(currentSymbol);
-            scanMarketFullReport();
-
-            logMessage(`⚡ [OKX Render Engine]: تم تحميل النظام بنجاح على السيرفر.`, 'success');
-
-            setInterval(() => fetchTicker(currentSymbol), 2500);
-            setInterval(() => fetchCandles(currentSymbol, currentTimeframe), 15000);
-            setInterval(runAutoPilotMarketScanner, 4000);
-        };
-    </script>
 </body>
 </html>
