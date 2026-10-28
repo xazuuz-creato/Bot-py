@@ -10,10 +10,7 @@ import uvicorn
 
 RIYADH_TZ = timezone(timedelta(hours=3))
 
-def get_riyadh_time():
-    return datetime.now(RIYADH_TZ).strftime('%I:%M %p')
-
-app = FastAPI(title="OKX Live Automated Scalping Server", version="24.0")
+app = FastAPI(title="OKX Fully Automated Scalping Server", version="25.0")
 
 # إعدادات مفاتيح API لمنصة OKX
 OKX_CONFIG = {
@@ -58,7 +55,7 @@ def init_exchange():
     return exchange
 
 async def live_trading_engine():
-    """حلقة التنفيذ الآلي ومراقبة الأسعار عبر OKX API"""
+    """حلقة التنفيذ الآلي الحقيقي وإدارة الصفقات عبر OKX API"""
     exchange = init_exchange()
     
     while True:
@@ -67,7 +64,7 @@ async def live_trading_engine():
                 sym = SYSTEM_STATE["symbol"]
                 okx_sym = sym.replace('/', '-')
                 
-                # جلب السعر الحي والبيانات من المنصة
+                # جلب السعر الحي من المنصة
                 ticker = exchange.fetch_ticker(okx_sym)
                 price = float(ticker['last'])
                 open24 = float(ticker.get('open24h', price))
@@ -80,7 +77,43 @@ async def live_trading_engine():
                     "low": float(ticker.get('low24h', price * 0.98))
                 }
 
-                # مراقبة الصفقات النشطة وإغلاقها عند الهدف
+                # --- الشرط الآلي للتنفيذ التلقائي ---
+                # إذا لم تكن هناك أي صفقة نشطة، يقوم البوت بفتح صفقة شراء تلقائياً فوراً
+                if len(SYSTEM_STATE["active_trades"]) == 0:
+                    budget = SYSTEM_STATE["trade_budget"]
+                    target_pct = SYSTEM_STATE["target_pct"]
+                    amount = budget / price
+
+                    try:
+                        # تنفيذ أمر الشراء الفعلي على OKX Sandbox API
+                        exchange.create_order(okx_sym, 'market', 'buy', amount)
+                        
+                        target_price = price * (1 + (target_pct / 100))
+                        stop_loss_price = price * 0.988
+
+                        now = datetime.now(RIYADH_TZ) + timedelta(minutes=15)
+                        riyadh_time = now.strftime('%I:%M %p')
+
+                        new_trade = {
+                            "id": int(time.time() * 1000),
+                            "symbol": sym,
+                            "type": "شراء (Long)",
+                            "entryPrice": price,
+                            "currentPrice": price,
+                            "targetPrice": target_price,
+                            "targetPct": target_pct,
+                            "stopLossPrice": stop_loss_price,
+                            "budget": budget,
+                            "pnlPct": 0.0,
+                            "pnlUsdt": 0.0,
+                            "expectedExit": riyadhTime
+                        }
+                        SYSTEM_STATE["active_trades"].append(new_trade)
+                        print(f"Auto-trade executed successfully for {sym} at {price}", flush=True)
+                    except Exception as ord_err:
+                        print(f"Auto-trade order error: {ord_err}", flush=True)
+
+                # مراقبة الصفقات النشطة وإغلاقها تلقائياً عند الهدف أو الوقف
                 remaining_trades = []
                 for trade in SYSTEM_STATE["active_trades"]:
                     trade["currentPrice"] = price
@@ -92,7 +125,7 @@ async def live_trading_engine():
                             amount = trade["budget"] / price
                             exchange.create_order(okx_sym, 'market', 'sell', amount)
                         except Exception as e:
-                            print(f"Sell order error: {e}", flush=True)
+                            print(f"Auto sell error: {e}", flush=True)
                         
                         trade["exitPrice"] = price
                         trade["reason"] = "حقيق هدف الربح 🎯"
@@ -102,7 +135,7 @@ async def live_trading_engine():
                             amount = trade["budget"] / price
                             exchange.create_order(okx_sym, 'market', 'sell', amount)
                         except Exception as e:
-                            print(f"Stop loss order error: {e}", flush=True)
+                            print(f"Auto stop-loss error: {e}", flush=True)
                             
                         trade["exitPrice"] = price
                         trade["reason"] = "ضرب وقف الخسارة 🛑"
@@ -113,9 +146,9 @@ async def live_trading_engine():
                 SYSTEM_STATE["active_trades"] = remaining_trades
 
             except Exception as e:
-                print(f"Engine Error: {e}", flush=True)
+                print(f"Engine Loop Error: {e}", flush=True)
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(4)
         else:
             await asyncio.sleep(2)
 
