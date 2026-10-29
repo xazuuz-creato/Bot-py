@@ -15,13 +15,12 @@ app = FastAPI(title="SmartScalpEngine + OKX Live Server", version="31.0")
 
 # إعدادات حساب OKX التجريبي (Sandbox) المحدثة بناءً على صورتك الأخيرة
 OKX_CONFIG = {
-    'apiKey': os.getenv('OKX_API_KEY', '74e80fbc-e258-4aa5-ab64-a27882e34775'),
-    'secret': os.getenv('OKX_SECRET_KEY', '0FCBDF7BE5A86D101ABD43B89592EBC'),
-    'password': os.getenv('OKX_PASSWORD', 'Aa11223344##'),
+    'apiKey': '74e80fbc-e258-4aa5-ab64-a27882e34775',
+    'secret': '0FCBDF7BE5A86D101ABD43B89592EBC',
+    'password': 'Aa11223344##',
     'enableRateLimit': True,
     'options': {'defaultType': 'spot'}
 }
-
 # حالة النظام المركزية
 SYSTEM_STATE = {
     "is_running": True,
