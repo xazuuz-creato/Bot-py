@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة السكالبينغ المتقدمة - OKX Sandbox</title>
+    <title>منصة بايثون للسكالبينغ الذكي - OKX</title>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
@@ -34,11 +34,10 @@
 </head>
 <body>
 
-<!-- شريط الأرصدة وحالة السوق -->
 <div class="box flex">
     <div>
-        <h3 style="margin:0; color:var(--blue);">🚀 منصة السكالبينغ الذكية والتحكم الفائق (OKX Sandbox)</h3>
-        <p style="margin:4px 0 0; font-size:12px; color:#848e9c;" id="marketStatus">جاري فحص حالة السوق والسيولة...</p>
+        <h3 style="margin:0; color:var(--blue);">🐍 منصة بايثون للسكالبينغ الفائق (OKX Sandbox)</h3>
+        <p style="margin:4px 0 0; font-size:12px; color:#848e9c;" id="marketStatus">جاري فحص السوق والسيولة بواسطة بايثون...</p>
     </div>
     <div style="font-family: monospace; font-size: 13px; text-align: left;">
         <div>إجمالي الرصيد: <span id="balTotal" style="color:var(--green)">--</span> USDT</div>
@@ -46,15 +45,15 @@
     </div>
 </div>
 
-<!-- لوحة التحكم المتقدمة -->
 <div class="box flex">
     <div>
-        <label style="font-size:12px; color:#848e9c;">العملة:</label><br>
+        <label style="font-size:12px; color:#848e9c;">العملة النشطة:</label><br>
         <select id="selSymbol" onchange="updateSettings()">
             <option value="BTC/USDT">BTC/USDT</option>
             <option value="ETH/USDT">ETH/USDT</option>
             <option value="SOL/USDT">SOL/USDT</option>
             <option value="DOGE/USDT" selected>DOGE/USDT</option>
+            <option value="XRP/USDT">XRP/USDT</option>
         </select>
     </div>
     <div>
@@ -78,16 +77,32 @@
     </div>
 </div>
 
-<!-- الرسم البياني وحالة المحرك -->
 <div class="box">
-    <div class="flex" style="margin-bottom:10px;">
-        <h4 style="margin:0;">الرسم البياني للعملة وتحليل السيولة</h4>
-        <span id="engineStatus" class="badge">البوت يراقب السوق ويحلل الفريمات...</span>
-    </div>
-    <div id="chartContainer" style="width:100%; height:360px;"></div>
+    <h4 style="margin:0 0 10px; color: var(--purple);">🏆 لوحة تحليل وترتيب العملات بواسطة بايثون (مرتبة من الأفضل)</h4>
+    <table>
+        <thead>
+            <tr>
+                <th>الترتيب</th>
+                <th>العملة</th>
+                <th>السعر الحالي</th>
+                <th>التغير 24h</th>
+                <th>تقييم بوت بايثون</th>
+            </tr>
+        </thead>
+        <tbody id="rankedCoinsTable">
+            <tr><td colspan="5" style="text-align:center; color:#848e9c;">جاري تحليل العملات وترتيبها...</td></tr>
+        </tbody>
+    </table>
 </div>
 
-<!-- جدول الصفقات النشطة -->
+<div class="box">
+    <div class="flex" style="margin-bottom:10px;">
+        <h4 style="margin:0;">الرسم البياني للعملة النشطة</h4>
+        <span id="engineStatus" class="badge">محرك بايثون يراقب السوق...</span>
+    </div>
+    <div id="chartContainer" style="width:100%; height:340px;"></div>
+</div>
+
 <div class="box">
     <h4 style="margin:0 0 10px;">📊 الصفقات النشطة حالياً</h4>
     <table>
@@ -97,20 +112,19 @@
                 <th>سعر الدخول</th>
                 <th>السعر الحالي</th>
                 <th>الهدف (TP)</th>
-                <th>وقف الخسارة الذكي (SL)</th>
-                <th>وقت الانتهاء المتوقع</th>
+                <th>وقف الخسارة (SL)</th>
+                <th>وقت الخروج المتوقع</th>
                 <th>الربح / الخسارة ($ / %)</th>
             </tr>
         </thead>
         <tbody id="activeTable">
-            <tr><td colspan="7" style="text-align:center; color:#848e9c;">لا توجد صفقات نشطة، البوت يبحث عن أفضل فرصة ذات سيولة عالية...</td></tr>
+            <tr><td colspan="7" style="text-align:center; color:#848e9c;">لا توجد صفقات نشطة حالياً...</td></tr>
         </tbody>
     </table>
 </div>
 
-<!-- سجل الصفقات المغلقة -->
 <div class="box">
-    <h4 style="margin:0 0 10px;">📋 سجل الصفقات المغلقة (أرباح وخسائر)</h4>
+    <h4 style="margin:0 0 10px;">📋 سجل الصفقات المغلقة</h4>
     <table>
         <thead>
             <tr>
@@ -133,7 +147,7 @@
 
     const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
         width: document.getElementById('chartContainer').clientWidth,
-        height: 360,
+        height: 340,
         layout: { background: { type: 'solid', color: '#10141d' }, textColor: '#848e9c' },
         grid: { vertLines: { color: '#1a2230' }, horzLines: { color: '#1a2230' } }
     });
@@ -150,10 +164,26 @@
             document.getElementById('balTotal').innerText = data.account_balance.total;
             document.getElementById('balFree').innerText = data.account_balance.free;
 
-            // جدول الصفقات النشطة
+            let rankedTbody = document.getElementById('rankedCoinsTable');
+            if (data.ranked_coins && data.ranked_coins.length > 0) {
+                rankedTbody.innerHTML = data.ranked_coins.map((coin, index) => {
+                    let changeClass = coin.change >= 0 ? 'positive' : 'negative';
+                    let rankBadge = index === 0 ? '🥇 الأول (الأفضل)' : (index === 1 ? '🥈 الثاني' : `#${index + 1}`);
+                    return `
+                        <tr>
+                            <td><b>${rankBadge}</b></td>
+                            <td><b>${coin.symbol}</b></td>
+                            <td>$${coin.price}</td>
+                            <td class="${changeClass}">${coin.change >= 0 ? '+' : ''}${coin.change}%</td>
+                            <td><span class="badge">${coin.status}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
             let activeTbody = document.getElementById('activeTable');
             if (data.active_trades.length === 0) {
-                activeTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#848e9c;">البوت يبحث عن فرصة مناسبة وفق شروط السيولة الصارمة...</td></tr>`;
+                activeTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#848e9c;">البوت يبحث عن أفضل فرصة ذات سيولة عالية...</td></tr>`;
             } else {
                 activeTbody.innerHTML = data.active_trades.map(t => {
                     let pnlClass = t.pnlPct >= 0 ? 'positive' : 'negative';
@@ -171,7 +201,6 @@
                 }).join('');
             }
 
-            // جدول الصفقات المغلقة
             let closedTbody = document.getElementById('closedTable');
             if (data.closed_trades.length === 0) {
                 closedTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#848e9c;">لم يتم إغلاق أي صفقة بعد</td></tr>`;
