@@ -3,542 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة الحارس الذكي للسكالبينغ - OKX Live Execution</title>
+    <title>منصة السكالبينغ المتقدمة - OKX Sandbox</title>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
-            --bg-dark: #0f1117;
-            --card-bg: #181b24;
-            --card-border: #262b38;
-            --accent-green: #00c853;
-            --accent-red: #ff3d00;
-            --accent-blue: #29b6f6;
-            --accent-purple: #ab47bc;
-            --text-main: #eceff1;
-            --text-muted: #90a4ae;
+            --bg: #0b0e14;
+            --card: #151a23;
+            --border: #222b3a;
+            --green: #00c853;
+            --red: #ff3d00;
+            --blue: #29b6f6;
+            --purple: #ab47bc;
+            --text: #f0f3f6;
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            margin: 0;
-            padding: 15px;
-            direction: rtl;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .top-bar {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 10px;
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .brand-title h2 { margin: 0; font-size: 20px; color: var(--accent-blue); }
-        .brand-title p { margin: 3px 0 0 0; font-size: 12px; color: var(--text-muted); }
-
-        .controls-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .control-item {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .control-item label { font-size: 11px; color: var(--text-muted); }
-
-        select, input {
-            background: #212532;
-            border: 1px solid var(--card-border);
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            outline: none;
-        }
-
-        .btn {
-            padding: 9px 16px;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-        }
-
-        .btn-success { background: var(--accent-green); color: #000; }
-        .btn-danger { background: var(--accent-red); color: #fff; }
-        .btn-purple { background: var(--accent-purple); color: #fff; }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 15px;
-        }
-
-        @media (max-width: 992px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
-        }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 10px;
-            padding: 15px;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            border-bottom: 1px solid var(--card-border);
-            padding-bottom: 8px;
-        }
-
-        .card-header h3 { margin: 0; font-size: 16px; color: var(--text-main); }
-
-        #chart-container {
-            width: 100%;
-            height: 420px;
-            background: #12141d;
-            border-radius: 6px;
-        }
-
-        .engine-status-box {
-            background: #212532;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
-        }
-
-        .metric-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            padding: 6px 0;
-            border-bottom: 1px dashed #2c3245;
-        }
-
-        .metric-value { font-weight: bold; }
-
-        .signal-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 12px;
-            text-align: center;
-        }
-
-        .badge-buy { background: rgba(0, 200, 83, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
-        .badge-wait { background: rgba(144, 164, 174, 0.2); color: var(--text-muted); border: 1px solid var(--text-muted); }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-            text-align: right;
-        }
-
-        th, td {
-            padding: 10px;
-            border-bottom: 1px solid var(--card-border);
-        }
-
-        th { background: #212532; color: var(--text-muted); font-weight: 500; }
-
-        .pnl-positive { color: var(--accent-green); font-weight: bold; }
-        .pnl-negative { color: var(--accent-red); font-weight: bold; }
-
-        .split-trades-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        @media (max-width: 768px) {
-            .split-trades-grid { grid-template-columns: 1fr; }
-        }
-
-        .win-zone { border-top: 3px solid var(--accent-green); }
-        .loss-zone { border-top: 3px solid var(--accent-red); }
+        body { background: var(--bg); color: var(--text); font-family: Tahoma, sans-serif; margin: 0; padding: 15px; direction: rtl; }
+        .box { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .flex { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        select, input { background: #1f2836; border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 5px; outline: none; }
+        .btn { padding: 8px 15px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-green { background: var(--green); color: #000; }
+        .btn-red { background: var(--red); color: #fff; }
+        .btn-purple { background: var(--purple); color: #fff; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: right; }
+        th, td { padding: 9px; border-bottom: 1px solid var(--border); }
+        th { color: #848e9c; }
+        .positive { color: var(--green); font-weight: bold; }
+        .negative { color: var(--red); font-weight: bold; }
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; background: rgba(41,182,246,0.15); color: var(--blue); }
     </style>
 </head>
 <body>
 
-<div class="container">
-    
-    <!-- شريط عرض رصيد حساب OKX API الفعلي -->
-    <div class="card" style="padding: 10px 15px; margin-bottom: 0px; display: flex; justify-content: space-between; align-items: center; background: #212532; flex-wrap: wrap; gap: 10px;">
-        <div style="font-size: 13px; font-weight: bold; color: var(--accent-blue);">
-            💼 رصيد حساب OKX API (Sandbox):
-        </div>
-        <div style="display: flex; gap: 20px; font-size: 13px; font-family: monospace; flex-wrap: wrap;">
-            <div>إجمالي الرصيد: <span id="balanceTotal" style="color: var(--accent-green); font-weight: bold;">-- USDT</span></div>
-            <div>المتاح: <span id="balanceFree" style="color: #fff; font-weight: bold;">-- USDT</span></div>
-            <div>المستخدم بالصفقات: <span id="balanceUsed" style="color: var(--accent-purple); font-weight: bold;">-- USDT</span></div>
-        </div>
+<!-- شريط الأرصدة وحالة السوق -->
+<div class="box flex">
+    <div>
+        <h3 style="margin:0; color:var(--blue);">🚀 منصة السكالبينغ الذكية والتحكم الفائق (OKX Sandbox)</h3>
+        <p style="margin:4px 0 0; font-size:12px; color:#848e9c;" id="marketStatus">جاري فحص حالة السوق والسيولة...</p>
     </div>
-
-    <!-- Header / Control Panel -->
-    <div class="top-bar">
-        <div class="brand-title">
-            <h2>محرك الحارس الذكي (SmartScalpEngine + OKX Live)</h2>
-            <p>التداول الآلي المباشر للعملات عالية السيولة | التنفيذ التلقائي للشروط الصارمة</p>
-        </div>
-
-        <div class="controls-group">
-            <div class="control-item">
-                <label>العملة الحالية:</label>
-                <select id="symbolSelect" onchange="updateServerSettings()">
-                    <option value="BTC/USDT">BTC/USDT (سيولة عالية)</option>
-                    <option value="ETH/USDT">ETH/USDT (سيولة عالية)</option>
-                    <option value="SOL/USDT">SOL/USDT (سيولة عالية)</option>
-                    <option value="DOGE/USDT" selected>DOGE/USDT (نشطة)</option>
-                    <option value="XRP/USDT">XRP/USDT (سيولة عالية)</option>
-                </select>
-            </div>
-
-            <div class="control-item">
-                <label>فريم التحليل:</label>
-                <select id="timeframeSelect" onchange="updateServerSettings()">
-                    <option value="1m">1 minute</option>
-                    <option value="5m" selected>5 minutes (محرك السكالبينغ)</option>
-                    <option value="15m">15 minutes</option>
-                </select>
-            </div>
-
-            <div class="control-item">
-                <label>ميزانية الصفقة ($):</label>
-                <input type="number" id="tradeBudget" value="100" min="10" onchange="updateServerSettings()" style="width: 80px;">
-            </div>
-
-            <div class="control-item">
-                <label>هدف الربح المستهدف (TP %):</label>
-                <input type="number" id="targetProfitPct" value="0.10" step="0.05" min="0.05" onchange="updateServerSettings()" style="width: 70px;">
-            </div>
-
-            <button id="autoBotBtn" class="btn btn-success" onclick="toggleAutoBot()">
-                🤖 التداول الآلي: مفعّل (Auto-Pilot)
-            </button>
-        </div>
+    <div style="font-family: monospace; font-size: 13px; text-align: left;">
+        <div>إجمالي الرصيد: <span id="balTotal" style="color:var(--green)">--</span> USDT</div>
+        <div>المتاح للتدوير: <span id="balFree" style="color:#fff">--</span> USDT</div>
     </div>
+</div>
 
-    <!-- Main Grid: Chart + Engine Status -->
-    <div class="dashboard-grid">
-        <div class="card">
-            <div class="card-header">
-                <h3>الرسم البياني المباشر (OKX API Server)</h3>
-                <span id="livePriceHeader" style="font-weight: bold; font-size: 16px; color: var(--accent-blue);">جاري الاتصال...</span>
-            </div>
-            <div id="chart-container"></div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h3>تشخيص محرك SmartScalpEngine وحالة البحث</h3>
-                <span id="engineStatusBadge" class="signal-badge badge-buy">مفعل ويراقب السوق</span>
-            </div>
-
-            <!-- عرض حالة البحث والحالة الحية للبوت -->
-            <div style="background: rgba(41, 182, 246, 0.1); border: 1px solid var(--accent-blue); padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 13px;">
-                <div style="font-weight: bold; color: var(--accent-blue); margin-bottom: 4px;">📡 حالة البوت الحالية:</div>
-                <div id="engineStatusText" style="color: #fff; font-weight: 600;">جاري فحص السوق والبحث عن صفقة...</div>
-            </div>
-
-            <!-- عرض الشروط الصارمة المذكرة -->
-            <div class="engine-status-box">
-                <div style="font-size: 12px; font-weight: bold; color: var(--accent-purple); margin-bottom: 6px; border-bottom: 1px solid var(--card-border); padding-bottom: 4px;">الشروط الصارمة لاستراتيجية السكالبينغ:</div>
-                <div class="metric-row">
-                    <span>1. مؤشر القوة النسبية (RSI < 40):</span>
-                    <span id="condRsi" class="metric-value" style="color: var(--accent-green);">قيد الفحص...</span>
-                </div>
-                <div class="metric-row">
-                    <span>2. سيولة حجم التداول (> $15M):</span>
-                    <span id="condVolume" class="metric-value" style="color: var(--accent-green);">قيد الفحص...</span>
-                </div>
-                <div class="metric-row">
-                    <span>3. فلتر الاتجاه الصاعد (EMA Filter):</span>
-                    <span id="condTrend" class="metric-value" style="color: var(--accent-green);">قيد الفحص...</span>
-                </div>
-            </div>
-
-            <button class="btn btn-purple" style="width: 100%; justify-content: center;" onclick="triggerTestTrade()">
-                ⚡ اختباري: تنفيذ صفقة آلياً الآن
-            </button>
-        </div>
+<!-- لوحة التحكم المتقدمة -->
+<div class="box flex">
+    <div>
+        <label style="font-size:12px; color:#848e9c;">العملة:</label><br>
+        <select id="selSymbol" onchange="updateSettings()">
+            <option value="BTC/USDT">BTC/USDT</option>
+            <option value="ETH/USDT">ETH/USDT</option>
+            <option value="SOL/USDT">SOL/USDT</option>
+            <option value="DOGE/USDT" selected>DOGE/USDT</option>
+        </select>
     </div>
-
-    <!-- Active Trades Table -->
-    <div class="card">
-        <div class="card-header">
-            <h3>مراقبة الصفقات النشطة (متزامنة مع السيرفر)</h3>
-            <span id="activeTradesCount" style="color: var(--accent-blue);">عدد الصفقات: 0</span>
-        </div>
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>العملة</th>
-                        <th>نوع الصفقة</th>
-                        <th>سعر الدخول</th>
-                        <th>السعر الحالي</th>
-                        <th>الهدف (TP %)</th>
-                        <th>وقف الخسارة (SL)</th>
-                        <th>PnL المباشر ($ / %)</th>
-                        <th>موعد الانتهاء المتوقع (الرياض)</th>
-                        <th>إجراءات</th>
-                    </tr>
-                </thead>
-                <tbody id="activeTradesBody">
-                    <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">لا توجد صفقات نشطة حالياً. الخادم يبحص عن الفرص وفق الشروط الصارمة...</td></tr>
-                </tbody>
-            </table>
-        </div>
+    <div>
+        <label style="font-size:12px; color:#848e9c;">ميزانية الصفقة ($):</label><br>
+        <input type="number" id="inpBudget" value="100" style="width:80px;" onchange="updateSettings()">
     </div>
-
-    <!-- Closed Trades Split View -->
-    <div class="split-trades-grid">
-        <div class="card win-zone">
-            <div class="card-header">
-                <h3 style="color: var(--accent-green);">الصفقات الرابحة (Winning Trades)</h3>
-                <span id="totalWinsCount" class="pnl-positive">0 صفقات</span>
-            </div>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>العملة</th>
-                            <th>سعر الدخول</th>
-                            <th>سعر الخروج</th>
-                            <th>الربح ($)</th>
-                            <th>النسبة %</th>
-                        </tr>
-                    </thead>
-                    <tbody id="winTradesBody">
-                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد صفقات رابحة بعد</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="card loss-zone">
-            <div class="card-header">
-                <h3 style="color: var(--accent-red);">الصفقات الخاسرة (Loss Trades)</h3>
-                <span id="totalLossesCount" class="pnl-negative">0 صفقات</span>
-            </div>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>العملة</th>
-                            <th>سعر الدخول</th>
-                            <th>سعر الخروج</th>
-                            <th>الخسارة ($)</th>
-                            <th>النسبة %</th>
-                        </tr>
-                    </thead>
-                    <tbody id="lossTradesBody">
-                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد صفقات خاسرة</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <div>
+        <label style="font-size:12px; color:#848e9c;">نسبة الربح (TP %):</label><br>
+        <input type="number" id="inpTarget" value="0.12" step="0.01" style="width:70px;" onchange="updateSettings()">
     </div>
+    <div>
+        <label style="font-size:12px; color:#848e9c;">إدارة الأهداف:</label><br>
+        <button id="btnAiTarget" class="btn btn-purple" onclick="toggleAiTarget()" style="font-size:11px; padding:9px;">🤖 اختيار البوت للهدف: مفعّل</button>
+    </div>
+    <div>
+        <span style="font-size:12px; color:#848e9c;">السعر المباشر:</span><br>
+        <span id="livePrice" style="color:var(--blue); font-weight:bold; font-size:15px;">--</span>
+    </div>
+    <div>
+        <button id="btnToggle" class="btn btn-green" onclick="toggleBot()">🤖 التشغيل الآلي</button>
+    </div>
+</div>
 
+<!-- الرسم البياني وحالة المحرك -->
+<div class="box">
+    <div class="flex" style="margin-bottom:10px;">
+        <h4 style="margin:0;">الرسم البياني للعملة وتحليل السيولة</h4>
+        <span id="engineStatus" class="badge">البوت يراقب السوق ويحلل الفريمات...</span>
+    </div>
+    <div id="chartContainer" style="width:100%; height:360px;"></div>
+</div>
+
+<!-- جدول الصفقات النشطة -->
+<div class="box">
+    <h4 style="margin:0 0 10px;">📊 الصفقات النشطة حالياً</h4>
+    <table>
+        <thead>
+            <tr>
+                <th>العملة</th>
+                <th>سعر الدخول</th>
+                <th>السعر الحالي</th>
+                <th>الهدف (TP)</th>
+                <th>وقف الخسارة الذكي (SL)</th>
+                <th>وقت الانتهاء المتوقع</th>
+                <th>الربح / الخسارة ($ / %)</th>
+            </tr>
+        </thead>
+        <tbody id="activeTable">
+            <tr><td colspan="7" style="text-align:center; color:#848e9c;">لا توجد صفقات نشطة، البوت يبحث عن أفضل فرصة ذات سيولة عالية...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- سجل الصفقات المغلقة -->
+<div class="box">
+    <h4 style="margin:0 0 10px;">📋 سجل الصفقات المغلقة (أرباح وخسائر)</h4>
+    <table>
+        <thead>
+            <tr>
+                <th>العملة</th>
+                <th>سعر الدخول</th>
+                <th>سعر الخروج</th>
+                <th>النتيجة</th>
+                <th>صافي الربح ($ / %)</th>
+            </tr>
+        </thead>
+        <tbody id="closedTable">
+            <tr><td colspan="5" style="text-align:center; color:#848e9c;">لم يتم إغلاق أي صفقة بعد</td></tr>
+        </tbody>
+    </table>
 </div>
 
 <script>
-    let isAutoBotActive = true;
-    const chartContainer = document.getElementById('chart-container');
-    const chart = LightweightCharts.createChart(chartContainer, {
-        width: chartContainer.clientWidth,
-        height: 420,
-        layout: { background: { type: 'solid', color: '#12141d' }, textColor: '#90a4ae' },
-        grid: { vertLines: { color: '#1e2230' }, horzLines: { color: '#1e2230' } },
+    let isRunning = true;
+    let useAiTarget = true;
+
+    const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
+        width: document.getElementById('chartContainer').clientWidth,
+        height: 360,
+        layout: { background: { type: 'solid', color: '#10141d' }, textColor: '#848e9c' },
+        grid: { vertLines: { color: '#1a2230' }, horzLines: { color: '#1a2230' } }
     });
     const candleSeries = chart.addCandlestickSeries();
 
-    function loadChartDummyData() {
-        let now = Math.floor(Date.now() / 1000) - 300 * 50;
-        let data = [];
-        let price = 0.1425;
-        for (let i = 0; i < 50; i++) {
-            let open = price;
-            let high = open + Math.random() * (open * 0.002);
-            let low = open - Math.random() * (open * 0.002);
-            let close = low + Math.random() * (high - low);
-            data.push({ time: now + i * 300, open, high, low, close });
-            price = close;
-        }
-        candleSeries.setData(data);
-    }
-
-    async function syncServerState() {
+    async function fetchData() {
         try {
             const res = await fetch('/api/state');
             const data = await res.json();
-            if (data) {
-                // Ticker & Price
-                document.getElementById('livePriceHeader').innerText = `$${data.ticker.price.toFixed(4)}`;
+            
+            document.getElementById('livePrice').innerText = `$${data.ticker.price}`;
+            document.getElementById('marketStatus').innerText = data.market_status;
+            document.getElementById('engineStatus').innerText = data.engine_status;
+            document.getElementById('balTotal').innerText = data.account_balance.total;
+            document.getElementById('balFree').innerText = data.account_balance.free;
 
-                // Balance Update
-                document.getElementById('balanceTotal').innerText = `${data.account_balance.total_usdt} USDT`;
-                document.getElementById('balanceFree').innerText = `${data.account_balance.free_usdt} USDT`;
-                document.getElementById('balanceUsed').innerText = `${data.account_balance.used_usdt} USDT`;
+            // جدول الصفقات النشطة
+            let activeTbody = document.getElementById('activeTable');
+            if (data.active_trades.length === 0) {
+                activeTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#848e9c;">البوت يبحث عن فرصة مناسبة وفق شروط السيولة الصارمة...</td></tr>`;
+            } else {
+                activeTbody.innerHTML = data.active_trades.map(t => {
+                    let pnlClass = t.pnlPct >= 0 ? 'positive' : 'negative';
+                    return `
+                        <tr>
+                            <td><b>${t.symbol}</b></td>
+                            <td>${t.entryPrice}</td>
+                            <td>${t.currentPrice}</td>
+                            <td>${t.targetPrice.toFixed(4)} (${t.targetPct}%)</td>
+                            <td>${t.stopLossPrice.toFixed(4)}</td>
+                            <td><span class="badge" style="background: rgba(0,200,83,0.15); color: var(--green);">${t.expectedExit}</span></td>
+                            <td class="${pnlClass}">${t.pnlUsdt.toFixed(2)}$ (${t.pnlPct.toFixed(2)}%)</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
 
-                // Engine & Conditions Status
-                document.getElementById('engineStatusText').innerText = data.engine_status;
-                document.getElementById('condRsi').innerText = data.conditions.rsi_status;
-                document.getElementById('condVolume').innerText = data.conditions.volume_status;
-                document.getElementById('condTrend').innerText = data.conditions.trend_status;
-
-                // Render Trades
-                renderActiveTrades(data.active_trades);
-                renderClosedTrades(data.closed_trades);
+            // جدول الصفقات المغلقة
+            let closedTbody = document.getElementById('closedTable');
+            if (data.closed_trades.length === 0) {
+                closedTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#848e9c;">لم يتم إغلاق أي صفقة بعد</td></tr>`;
+            } else {
+                closedTbody.innerHTML = data.closed_trades.map(t => {
+                    let pnlClass = t.pnlPct >= 0 ? 'positive' : 'negative';
+                    return `
+                        <tr>
+                            <td><b>${t.symbol}</b></td>
+                            <td>${t.entryPrice}</td>
+                            <td>${t.exitPrice}</td>
+                            <td><span class="badge">${t.result}</span></td>
+                            <td class="${pnlClass}">${t.pnlUsdt.toFixed(2)}$ (${t.pnlPct.toFixed(2)}%)</td>
+                        </tr>
+                    `;
+                }).join('');
             }
         } catch (e) {}
     }
 
-    async function updateServerSettings() {
-        const symbol = document.getElementById('symbolSelect').value;
-        const timeframe = document.getElementById('timeframeSelect').value;
-        const budget = parseFloat(document.getElementById('tradeBudget').value) || 100;
-        const targetPct = parseFloat(document.getElementById('targetProfitPct').value) || 0.10;
-
+    async function updateSettings() {
         await fetch('/api/control', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ is_running: isAutoBotActive, symbol, timeframe, trade_budget: budget, target_pct: targetPct })
+            body: JSON.stringify({
+                is_running: isRunning,
+                symbol: document.getElementById('selSymbol').value,
+                trade_budget: parseFloat(document.getElementById('inpBudget').value),
+                target_pct: parseFloat(document.getElementById('inpTarget').value),
+                use_ai_target: useAiTarget
+            })
         });
     }
 
-    async function triggerTestTrade() {
-        const symbol = document.getElementById('symbolSelect').value;
-        const budget = parseFloat(document.getElementById('tradeBudget').value) || 100;
-        const targetPct = parseFloat(document.getElementById('targetProfitPct').value) || 0.10;
-
-        await fetch('/api/execute_trade', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ symbol, budget, target_pct: targetPct })
-        });
-        syncServerState();
+    function toggleBot() {
+        isRunning = !isRunning;
+        let btn = document.getElementById('btnToggle');
+        btn.className = isRunning ? 'btn btn-green' : 'btn btn-red';
+        btn.innerText = isRunning ? '🤖 التشغيل الآلي' : '⏸️ متوقف';
+        updateSettings();
     }
 
-    async function closeTradeManual(tradeId) {
-        await fetch('/api/close_trade', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ trade_id: tradeId, reason: 'إغلاق يدوي' })
-        });
-        syncServerState();
+    function toggleAiTarget() {
+        useAiTarget = !useAiTarget;
+        let btn = document.getElementById('btnAiTarget');
+        btn.style.opacity = useAiTarget ? '1' : '0.5';
+        btn.innerText = useAiTarget ? '🤖 اختيار البوت للهدف: مفعّل' : '👤 اختيار الهدف يدوياً';
+        updateSettings();
     }
 
-    function renderActiveTrades(trades) {
-        let tbody = document.getElementById('activeTradesBody');
-        document.getElementById('activeTradesCount').innerText = `عدد الصفقات: ${trades.length}`;
-
-        if (trades.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">لا توجد صفقات نشطة حالياً. الخادم يبحث عن الفرص وفق الشروط الصارمة...</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = trades.map(trade => {
-            let pnlClass = trade.pnlPct >= 0 ? 'pnl-positive' : 'pnl-negative';
-            return `
-                <tr>
-                    <td><b>${trade.symbol}</b></td>
-                    <td><span class="signal-badge badge-buy">${trade.type}</span></td>
-                    <td>${trade.entryPrice.toFixed(4)}</td>
-                    <td>${trade.currentPrice.toFixed(4)}</td>
-                    <td>+${trade.targetPct.toFixed(2)}% (${trade.targetPrice.toFixed(4)})</td>
-                    <td>${trade.stopLossPrice.toFixed(4)}</td>
-                    <td class="${pnlClass}">${trade.pnlUsdt >= 0 ? '+' : ''}${trade.pnlUsdt.toFixed(2)}$ (${trade.pnlPct.toFixed(2)}%)</td>
-                    <td>${trade.expectedExit}</td>
-                    <td><button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="closeTradeManual(${trade.id})">إيقاف</button></td>
-                </tr>
-            `;
-        }).join('');
-    }
-
-    function renderClosedTrades(closedTrades) {
-        let winBody = document.getElementById('winTradesBody');
-        let lossBody = document.getElementById('lossTradesBody');
-
-        let wins = closedTrades.filter(t => t.pnlPct >= 0);
-        let losses = closedTrades.filter(t => t.pnlPct < 0);
-
-        document.getElementById('totalWinsCount').innerText = `${wins.length} صفقات`;
-        document.getElementById('totalLossesCount').innerText = `${losses.length} صفقات`;
-
-        winBody.innerHTML = wins.length === 0 
-            ? `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد صفقات رابحة بعد</td></tr>`
-            : wins.map(t => `
-                <tr>
-                    <td><b>${t.symbol}</b></td>
-                    <td>${t.entryPrice.toFixed(4)}</td>
-                    <td>${t.exitPrice.toFixed(4)}</td>
-                    <td class="pnl-positive">+${t.pnlUsdt.toFixed(2)}$</td>
-                    <td class="pnl-positive">+${t.pnlPct.toFixed(2)}%</td>
-                </tr>
-            `).join('');
-
-        lossBody.innerHTML = losses.length === 0
-            ? `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد صفقات خاسرة</td></tr>`
-            : losses.map(t => `
-                <tr>
-                    <td><b>${t.symbol}</b></td>
-                    <td>${t.entryPrice.toFixed(4)}</td>
-                    <td>${t.exitPrice.toFixed(4)}</td>
-                    <td class="pnl-negative">${t.pnlUsdt.toFixed(2)}$</td>
-                    <td class="pnl-negative">${t.pnlPct.toFixed(2)}%</td>
-                </tr>
-            `).join('');
-    }
-
-    function toggleAutoBot() {
-        isAutoBotActive = !isAutoBotActive;
-        let btn = document.getElementById('autoBotBtn');
-        if (isAutoBotActive) {
-            btn.className = 'btn btn-success';
-            btn.innerText = '🤖 التداول الآلي: مفعّل (Auto-Pilot)';
-        } else {
-            btn.className = 'btn btn-danger';
-            btn.innerText = '⏸️ التداول الآلي: متوقف';
-        }
-        updateServerSettings();
-    }
-
-    loadChartDummyData();
-    setInterval(syncServerState, 2500);
-
-    window.addEventListener('resize', () => {
-        chart.applyOptions({ width: chartContainer.clientWidth });
-    });
+    setInterval(fetchData, 1200);
 </script>
 
 </body>
