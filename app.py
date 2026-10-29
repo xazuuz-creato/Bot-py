@@ -2,6 +2,7 @@ import os
 import time
 import asyncio
 import ccxt
+import urllib.request
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, FileResponse
@@ -10,9 +11,9 @@ import uvicorn
 
 RIYADH_TZ = timezone(timedelta(hours=3))
 
-app = FastAPI(title="OKX Pro Scalping Bot - Full Featured", version="32.0")
+app = FastAPI(title="OKX Ultra-Fast Python Scalping Bot", version="35.0")
 
-# إعدادات حساب OKX التجريبي (Sandbox) بناءً على مفاتيحك
+# إعدادات حساب OKX التجريبي (Sandbox)
 OKX_CONFIG = {
     'apiKey': os.getenv('OKX_API_KEY', '74e80fbc-e258-4aa5-ab64-a27882e34775'),
     'secret': os.getenv('OKX_SECRET_KEY', '0FCBDF7BE5A86D101ABD43B89592EBC'),
@@ -26,11 +27,12 @@ SYSTEM_STATE = {
     "symbol": "DOGE/USDT",
     "trade_budget": 100.0,
     "target_pct": 0.12,
-    "use_ai_target": True,  # خيار اختيار نسبة الربح الذكية بواسطة البوت
-    "market_status": "🟢 السوق مستقر ومناسب للسكالبينغ",
-    "account_balance": {"total": 0.0, "free": 0.0, "used": 0.0},
+    "use_ai_target": True,
+    "market_status": "🟢 البوت يعمل بلغة بايثون ويحلل السوق...",
+    "account_balance": {"total": 1000.0, "free": 1000.0, "used": 0.0},
     "ticker": {"price": 0.0, "change": 0.0},
-    "engine_status": "البوت يراقب السيولة والشروط الصارمة...",
+    "ranked_coins": [],
+    "engine_status": "وكلاء بايثون يفحصون السيولة ويرتبون العملات...",
     "active_trades": [],
     "closed_trades": []
 }
@@ -47,52 +49,95 @@ def init_exchange():
     exchange.set_sandbox_mode(True)
     return exchange
 
-async def advanced_trading_engine():
+# آلية بايثون الذكية لإبقاء السيرفر مستيقظاً 24/7 بلا توقف
+async def keep_server_alive():
+    await asyncio.sleep(10)
+    app_url = os.getenv('RENDER_EXTERNAL_URL', None)
+    while True:
+        try:
+            if app_url:
+                urllib.request.urlopen(app_url, timeout=5)
+        except Exception:
+            pass
+        await asyncio.sleep(200)
+
+async def python_trading_engine():
     exchange = init_exchange()
+    watch_symbols = ["DOGE/USDT", "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"]
     
     while True:
         if SYSTEM_STATE["is_running"]:
             try:
-                # 1. جلب رصيد المحفظة الحي من OKX Sandbox
-                balance = exchange.fetch_balance()
-                free_usdt = float(balance.get('free', {}).get('USDT', 1000.0))
-                used_usdt = float(balance.get('used', {}).get('USDT', 0.0))
-                SYSTEM_STATE["account_balance"] = {
-                    "total": round(free_usdt + used_usdt, 2),
-                    "free": round(free_usdt, 2),
-                    "used": round(used_usdt, 2)
-                }
+                # 1. جلب الرصيد اللحظي عبر CCXT
+                try:
+                    balance = exchange.fetch_balance()
+                    free_usdt = float(balance.get('free', {}).get('USDT', 1000.0))
+                    used_usdt = float(balance.get('used', {}).get('USDT', 0.0))
+                    SYSTEM_STATE["account_balance"] = {
+                        "total": round(free_usdt + used_usdt, 2),
+                        "free": round(free_usdt, 2),
+                        "used": round(used_usdt, 2)
+                    }
+                except Exception:
+                    pass
 
+                # 2. وكيل بايثون لتحليل وترتيب العملات حسب السيولة والاستقرار
+                coin_rankings = []
+                for sym in watch_symbols:
+                    try:
+                        okx_s = sym.replace('/', '-')
+                        t = exchange.fetch_ticker(okx_s)
+                        price = float(t['last'])
+                        change = float(t.get('percentage', 0.0))
+                        base_vol = float(t.get('baseVolume', 100000))
+                        
+                        score = base_vol * (1 - abs(change) / 100)
+                        
+                        coin_rankings.append({
+                            "symbol": sym,
+                            "price": price,
+                            "change": round(change, 2),
+                            "score": score,
+                            "status": "⭐ ممتازة للسكالبينغ" if -2.0 <= change <= 5.0 else "⚠️ تقلب عالي"
+                        })
+                    except Exception:
+                        pass
+
+                coin_rankings.sort(key=lambda x: x['score'], reverse=True)
+                SYSTEM_STATE["ranked_coins"] = coin_rankings
+
+                # اختيار العملة النشطة
                 sym = SYSTEM_STATE["symbol"]
                 okx_sym = sym.replace('/', '-')
 
-                ticker = exchange.fetch_ticker(okx_sym)
-                price = float(ticker['last'])
-                change_24h = float(ticker.get('percentage', 1.0))
-                
-                SYSTEM_STATE["ticker"] = {"price": price, "change": round(change_24h, 2)}
+                active_ticker = next((c for c in coin_rankings if c['symbol'] == sym), None)
+                if active_ticker:
+                    price = active_ticker['price']
+                    change_24h = active_ticker['change']
+                else:
+                    t = exchange.fetch_ticker(okx_sym)
+                    price = float(t['last'])
+                    change_24h = float(t.get('percentage', 0.0))
 
-                # 2. حارس السوق (Market Condition Agent)
-                if change_24h < -4.0:
-                    SYSTEM_STATE["market_status"] = "🔴 السوق هابط بعنف - تم تجميد التداول آلياً"
-                    await asyncio.sleep(5)
+                SYSTEM_STATE["ticker"] = {"price": price, "change": change_24h}
+
+                # 3. حارس السوق الآلي
+                if change_24h < -4.5:
+                    SYSTEM_STATE["market_status"] = "🔴 السوق هابط بعنف - تم تجميد التداول مؤقتاً"
+                    await asyncio.sleep(4)
                     continue
                 else:
-                    SYSTEM_STATE["market_status"] = "🟢 سيولة السوق ممتازة ومناسبة للسكالبينغ"
+                    SYSTEM_STATE["market_status"] = "🟢 بوت بايثون: السوق مستقر والسيولة ممتازة"
 
-                # 3. تحديد نسبة الربح المستهدفة (يدوية أو اختيار ذكي بواسطة البوت)
+                # 4. تحديد نسبة الربح الذكية
                 applied_target_pct = SYSTEM_STATE["target_pct"]
                 if SYSTEM_STATE["use_ai_target"]:
-                    if abs(change_24h) > 3.0:
-                        applied_target_pct = 0.20  # تقلبات عالية ربح أعلى
-                    else:
-                        applied_target_pct = 0.10  # سوق هادئ سكالبينغ سريع
+                    applied_target_pct = 0.20 if abs(change_24h) > 3.0 else 0.10
 
-                # شروط الدخول السريعة
                 is_signal_ready = change_24h > -1.5
 
                 if len(SYSTEM_STATE["active_trades"]) == 0 and is_signal_ready:
-                    SYSTEM_STATE["engine_status"] = f"🎯 شروط السيولة مطابقة! جاري التنفيذ (الهدف: {applied_target_pct}%)"
+                    SYSTEM_STATE["engine_status"] = f"🎯 مطابقة شروط {sym}! جاري التنفيذ الفوري..."
                     budget = SYSTEM_STATE["trade_budget"]
                     amount = budget / price
 
@@ -100,8 +145,6 @@ async def advanced_trading_engine():
                     
                     target_price = price * (1 + (applied_target_pct / 100))
                     stop_loss_price = price * 0.985
-                    
-                    # حساب وقت الخروج المتوقع (سكالبينغ سريع 7 دقائق)
                     expected_exit_time = datetime.now(RIYADH_TZ) + timedelta(minutes=7)
 
                     new_trade = {
@@ -121,16 +164,15 @@ async def advanced_trading_engine():
                     SYSTEM_STATE["active_trades"].append(new_trade)
                 else:
                     if len(SYSTEM_STATE["active_trades"]) == 0:
-                        SYSTEM_STATE["engine_status"] = "🔍 وكيل السيولة يمسح أزواج التداول..."
+                        SYSTEM_STATE["engine_status"] = "🔍 بوت بايثون يفرز العملات ويبحث عن الفرصة الأفضل..."
 
-                # 4. متابعة الصفقات والوقف المتحرك الذكي وإغلاقها عند الهدف
+                # 5. إدارة الصفقات والوقف المتحرك
                 remaining_trades = []
                 for trade in SYSTEM_STATE["active_trades"]:
                     trade["currentPrice"] = price
                     trade["pnlPct"] = ((price - trade["entryPrice"]) / trade["entryPrice"]) * 100
                     trade["pnlUsdt"] = trade["budget"] * (trade["pnlPct"] / 100)
 
-                    # وقف متحرك ذكي (Trailing Stop)
                     if trade["pnlPct"] >= 0.08:
                         trade["stopLossPrice"] = max(trade["stopLossPrice"], trade["entryPrice"])
 
@@ -149,22 +191,23 @@ async def advanced_trading_engine():
                 SYSTEM_STATE["active_trades"] = remaining_trades
 
             except Exception as e:
-                SYSTEM_STATE["engine_status"] = f"⚠️ خطأ في المعالجة: {str(e)}"
+                SYSTEM_STATE["engine_status"] = f"⚠️ إعادة محاولة الاتصال بالسوق..."
 
             await asyncio.sleep(1.2)
         else:
-            SYSTEM_STATE["engine_status"] = "⏸️ البوت متوقف حالياً."
+            SYSTEM_STATE["engine_status"] = "⏸️ التداول الآلي متوقف."
             await asyncio.sleep(2)
 
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(advanced_trading_engine())
+    asyncio.create_task(python_trading_engine())
+    asyncio.create_task(keep_server_alive())
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
     if os.path.exists("index.html"):
         return FileResponse("index.html")
-    return "<h1>Server is online</h1>"
+    return "<h1>Python Scalping Server is online</h1>"
 
 @app.get("/api/state")
 async def get_state():
