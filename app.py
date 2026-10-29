@@ -11,11 +11,12 @@ import uvicorn
 
 RIYADH_TZ = timezone(timedelta(hours=3))
 
-app = FastAPI(title="SmartScalpEngine + OKX Live Server", version="30.0")
+app = FastAPI(title="SmartScalpEngine + OKX Live Server", version="31.0")
 
+# إعدادات حساب OKX التجريبي (Sandbox) المحدثة بناءً على صورتك الأخيرة
 OKX_CONFIG = {
-    'apiKey': os.getenv('OKX_API_KEY', '8dd26496-0023-4b54-ae2b-4a48d513fb05'),
-    'secret': os.getenv('OKX_SECRET_KEY', 'EB61E3ACC19D33653EDC54DA55388B2E'),
+    'apiKey': os.getenv('OKX_API_KEY', '74e80fbc-e258-4aa5-ab64-a27882e34775'),
+    'secret': os.getenv('OKX_SECRET_KEY', '0FCBDF7BE5A86D101ABD43B89592EBC'),
     'password': os.getenv('OKX_PASSWORD', 'Aa11223344##'),
     'enableRateLimit': True,
     'options': {'defaultType': 'spot'}
@@ -34,7 +35,7 @@ SYSTEM_STATE = {
         "used_usdt": 0.0
     },
     "ticker": {"price": 0.1425, "change": 2.45, "high": 0.1480, "low": 0.1390},
-    "engine_status": "جاري فحص شروط السكالبينغ والاتصال بـ OKX...",
+    "engine_status": "جاري فحص شروط السكالبينغ والاتصال بـ OKX (API الجديد)...",
     "conditions": {
         "rsi_status": "قيد الفحص (الهدف: RSI < 40)",
         "volume_status": "قيد الفحص (الهدف: سيولة عالية > 15M)",
@@ -83,7 +84,7 @@ async def live_trading_engine():
     while True:
         if SYSTEM_STATE["is_running"]:
             try:
-                # جلب الرصيد الفعلي من منصة OKX API
+                # جلب الرصيد الفعلي من منصة OKX API باستخدام البيانات الجديدة
                 try:
                     balance = exchange.fetch_balance()
                     usdt_free = float(balance.get('free', {}).get('USDT', 0.0))
@@ -151,10 +152,10 @@ async def live_trading_engine():
                                 "budget": budget,
                                 "pnlPct": 0.0,
                                 "pnlUsdt": 0.0,
-                                "expectedExit": riyadhTime
+                                "expectedExit": riyadh_time
                             }
                             SYSTEM_STATE["active_trades"].append(new_trade)
-                            SYSTEM_STATE["engine_status"] = "✅ تم دخول الصفقة بنجاح، بانتظار الهدف..."
+                            SYSTEM_STATE["engine_status"] = "✅ تم دخول الصفقة بنجاح عبر API الجديد، بانتظار الهدف..."
                         except Exception as ord_err:
                             SYSTEM_STATE["engine_status"] = f"⚠️ خطأ في التنفيذ: {str(ord_err)}"
                     else:
