@@ -460,37 +460,61 @@
                 badge.innerText = `⚡ سيولة ممتازة (${data.volRatio}x) | هدف: +${data.adaptiveTp}% | وقف: -${data.adaptiveSl}%`;
             } else if (data.volRatio >= 1.25 && data.wickRatio >= 0.35) {
                 badge.className = "bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded border border-amber-500/30";
+                badge.innerText = `⚠️ سيولة مرتفعة لكن هناك ذيل علوي مرتفع (${data.volRatio}x)`;
+            } else {
+                badge.className = "bg-darkBg text-slate-400 text-xs px-2 py-0.5 rounded border border-cardBorder";
+                badge.innerText = `جاري مراقبة السيولة (${data.volRatio}x)...`;
+            }
+        }
+
+        async function fetchCandlesForCurrentChart() {
+            try {
+                const res = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${currentSymbol}&bar=5m&limit=40`);
+                const json = await res.json();
+                if (json.code === "0" && json.data.length > 0) {
+                    const formattedCandles = json.data.map(c => ({
+                        time: Math.floor(parseInt(c[0]) / 1000),
+                        open: parseFloat(c[1]),
+                        high: parseFloat(c[2]),
+                        low: parseFloat(c[3]),
+                        close: parseFloat(c[4])
+                    })).reverse();
+
+                    if (candlestickSeries) {
+                        candlestickSeries.setData(formattedCandles);
+                    }
+                }
+            } catch (e) {}
+        }
+
         async function triggerScalpEntry(symbol, price, volRatio, adaptiveTp, adaptiveSl) {
             const budget = parseFloat(document.getElementById('tradeBudgetInput').value) || 100;
             const tpPct = tpMode === 'adaptive' ? adaptiveTp : (parseFloat(document.getElementById('targetTpInput').value) || 0.30);
             const slPct = tpMode === 'adaptive' ? adaptiveSl : (parseFloat(document.getElementById('targetSlInput').value) || 0.15);
 
-            // جلب مفاتيح الـ API
+            // جلب مفاتيح الـ API المكتوبة يدوياً أو استخدام مفاتيح البيئة التلقائية
             const apiKey = document.getElementById('okxApiKeyInput').value;
             const secretKey = document.getElementById('okxSecretKeyInput').value;
             const passphrase = document.getElementById('okxPassphraseInput').value;
 
-            // تنفيذ أمر شراء حقيقي عبر API OKX Demo عند توفر المفاتيح
-            if (apiKey && secretKey && passphrase) {
-                try {
-                    logMessage(`📡 إرسال أمر شراء حقيقي عبر OKX Demo API لـ ${symbol}...`);
-                    const res = await fetch('/api/execute-order', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            apiKey, secretKey, passphrase,
-                            symbol, action: 'BUY', amountUsdt: budget, isDemo: true
-                        })
-                    });
-                    const orderRes = await res.json();
-                    if (orderRes.status === 'success') {
-                        logMessage(`✅ [تنفيذ API مؤكد]: ${orderRes.message} (Order ID: ${orderRes.order_id})`, 'success');
-                    } else {
-                        logMessage(`⚠️ [خطأ OKX API]: ${orderRes.message}`, 'warn');
-                    }
-                } catch (e) {
-                    logMessage(`🛑 تعذر الاتصال بـ OKX API Backend`, 'warn');
+            try {
+                logMessage(`📡 إرسال أمر شراء عبر Render Backend لـ ${symbol}...`);
+                const res = await fetch('/api/execute-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        apiKey, secretKey, passphrase,
+                        symbol, action: 'BUY', amountUsdt: budget, isDemo: true
+                    })
+                });
+                const orderRes = await res.json();
+                if (orderRes.status === 'success') {
+                    logMessage(`✅ [تنفيذ OKX مؤكد]: ${orderRes.message} (Order ID: ${orderRes.order_id})`, 'success');
+                } else {
+                    logMessage(`⚠️ [تنبيه OKX API]: ${orderRes.message}`, 'warn');
                 }
+            } catch (e) {
+                logMessage(`🛑 يتعذر الاتصال بالسيرفر المباشر`, 'warn');
             }
 
             const trade = {
@@ -568,7 +592,6 @@
             const pnlUsdt = (trade.budget * (pnlPct / 100)).toFixed(3);
             const durationSeconds = Math.floor((Date.now() - trade.entryTime) / 1000);
 
-            // إضافة الصفقة لسجل الصفقات المنتهية
             completedTrades.unshift({
                 id: trade.id,
                 symbol: trade.symbol,
@@ -709,19 +732,6 @@
             });
         }
 
-        window.onload = function() {
-            initChart();
-            updateSymbolSelectOptions();
-            fetchCandlesForCurrentChart();
-            scanAllPairs();
-            
-            // مسح متوازي آلي كل ثانيتين لجميع أزواج العملات دون تبطئة
-            setInterval(scanAllPairs, 2000);
-            setInterval(fetchCandlesForCurrentChart, 5000);
-        };
-    </script>
-</body>
-</html>
         async function checkServerEnvConfig() {
             try {
                 const res = await fetch('/api/config');
@@ -732,15 +742,15 @@
                 if (config.hasEnvKeys) {
                     badge.className = "bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 font-bold";
                     badge.innerText = "Render Keys Connected ⚡";
-                    msg.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> تم التعرف على المفاتيح تلقائياً من Render (${config.apiKeyMasked})`;
-                    logMessage(`✅ تم جلب مفاتيح OKX API من متغيرات بيئة Render (${config.apiKeyMasked})`, 'success');
+                    msg.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> تم التعرف على المفاتيح تلقائياً من Render Environment (${config.apiKeyMasked})`;
+                    logMessage(`✅ تم ربط OKX API تلقائياً من Render Environment (${config.apiKeyMasked})`, 'success');
                 } else {
                     badge.className = "bg-amber-500/20 text-amber-400 text-[10px] px-2 py-0.5 rounded border border-amber-500/30";
                     badge.innerText = "يدوي / Demo";
                     msg.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400"></i> لم يتم العثور على المفاتيح في Render، يمكنك إدخالها يدوياً.`;
                 }
             } catch (e) {
-                console.log("Not running on FastAPI backend or backend offline.");
+                console.log("Server API check bypassed.");
             }
         }
 
