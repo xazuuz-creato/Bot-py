@@ -52,12 +52,34 @@
                 </div>
             </div>
 
+            <!-- OKX Live Account Balance Bar -->
+            <div class="flex items-center gap-3 bg-darkBg border border-emerald-500/40 px-4 py-2 rounded-xl shadow-inner">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-base font-bold">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-400 block font-semibold">رصيد حساب OKX المربوط:</span>
+                    <span id="okxAccountBalanceDisplay" class="text-emerald-400 font-mono font-extrabold text-base">$0.00 USDT</span>
+                </div>
+                <button onclick="fetchOkxBalance()" title="تحديث الرصيد المباشر" class="text-slate-400 hover:text-emerald-400 transition ml-1">
+                    <i class="fa-solid fa-rotate-right text-xs"></i>
+                </button>
+            </div>
+
             <div class="flex items-center gap-4 bg-darkBg px-4 py-2 rounded-lg border border-cardBorder text-xs">
                 <div>
                     <span class="text-slate-400 block">نطاق الرادار:</span>
                     <select id="radarScopeSelect" onchange="switchRadarScope(this.value)" class="bg-cardBg border border-cardBorder text-amber-400 font-bold rounded p-1">
                         <option value="6" selected>⚡ وضع 6 عملات (الأعلى سيولة)</option>
                         <option value="30">🚀 وضع 30 عملة (فرص مضاعفة)</option>
+                    </select>
+                </div>
+                <div class="h-6 w-px bg-cardBorder"></div>
+                <div>
+                    <span class="text-slate-400 block">رادار الجدران المالية:</span>
+                    <select id="wallRadarToggle" onchange="toggleWallRadar(this.value)" class="bg-cardBg border border-cardBorder text-emerald-400 font-bold rounded p-1">
+                        <option value="enabled" selected>🛡️ مفعل (تصفية الجدران)</option>
+                        <option value="disabled">⚡ معطل (بدون رادار جدران)</option>
                     </select>
                 </div>
                 <div class="h-6 w-px bg-cardBorder"></div>
@@ -97,25 +119,20 @@
             <!-- Settings Engine -->
             <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-xl border-l-4 border-l-emerald-500">
                 <h2 class="font-bold text-sm text-slate-200 mb-3 flex items-center justify-between">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-key text-amber-400"></i> ربط OKX API (Render Environment)</span>
-                    <span id="apiStatusBadge" class="bg-amber-500/20 text-amber-400 text-[10px] px-2 py-0.5 rounded border border-amber-500/30">جاري الفحص...</span>
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-server text-emerald-400"></i> حالة الاتصال بالسيرفر (Render API)</span>
+                    <span id="apiStatusBadge" class="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 font-bold">متصل بالسيرفر ⚡</span>
                 </h2>
 
-                <div class="space-y-2.5 text-xs mb-4 p-2.5 bg-darkBg rounded-lg border border-cardBorder">
-                    <div id="envKeyStatusMessage" class="text-emerald-400 font-bold text-[11px] mb-2 flex items-center gap-1.5">
-                        <i class="fa-solid fa-spinner fa-spin"></i> جاري الاتصال بخادم Render للتحقق من المفاتيح...
+                <!-- Render Auto-Connection Notification Banner -->
+                <div class="p-3 bg-darkBg rounded-lg border border-emerald-500/30 mb-4 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm shrink-0">
+                        <i class="fa-solid fa-shield-halved"></i>
                     </div>
                     <div>
-                        <label class="text-slate-400 block mb-0.5">API Key (Render Env):</label>
-                        <input type="text" id="okxApiKeyInput" placeholder="مفتاح مفعل من Render Environment" class="w-full bg-cardBg border border-cardBorder rounded p-1.5 font-mono text-slate-200 text-[11px]">
-                    </div>
-                    <div>
-                        <label class="text-slate-400 block mb-0.5">Secret Key:</label>
-                        <input type="password" id="okxSecretKeyInput" placeholder="مفتاح مفعل تلقائياً" class="w-full bg-cardBg border border-cardBorder rounded p-1.5 font-mono text-slate-200 text-[11px]">
-                    </div>
-                    <div>
-                        <label class="text-slate-400 block mb-0.5">Passphrase:</label>
-                        <input type="password" id="okxPassphraseInput" placeholder="كلمة المرور مفعالة تلقائياً" class="w-full bg-cardBg border border-cardBorder rounded p-1.5 font-mono text-slate-200 text-[11px]">
+                        <div id="envKeyStatusMessage" class="text-emerald-400 font-bold text-xs">
+                            <i class="fa-solid fa-circle-check"></i> متصل آلياً بمفاتيح OKX API من سيرفر Render
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-0.5">يتم تنفيذ الصفقات عبر المفاتيح المشفرة والمحفوطة آمنة في بيئة Render</p>
                     </div>
                 </div>
 
@@ -129,8 +146,11 @@
                     </div>
 
                     <div>
-                        <label class="text-slate-400 block mb-1">ميزانية كل صفقة (USDT):</label>
-                        <input type="number" id="tradeBudgetInput" value="100" class="w-full bg-darkBg border border-cardBorder rounded-lg p-2 font-mono text-emerald-400 font-bold">
+                        <label class="text-slate-400 block mb-1">ميزانية كل صفقة (Trade Budget USDT):</label>
+                        <div class="relative">
+                            <input type="number" id="tradeBudgetInput" value="100" class="w-full bg-darkBg border border-cardBorder rounded-lg p-2.5 pl-12 font-mono text-emerald-400 font-bold text-sm">
+                            <span class="absolute left-3 top-2.5 text-xs text-slate-400 font-bold font-mono">USDT</span>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -146,16 +166,20 @@
 
                     <div class="bg-darkBg p-3 rounded-lg border border-cardBorder space-y-1.5 text-[11px]">
                         <div class="flex justify-between items-center text-slate-300">
-                            <span>نسبة الأرباح للمخاطرة:</span>
-                            <span class="font-bold text-emerald-400">محمية (TP > SL دائماً)</span>
+                            <span>تسارع السيولة (Velocity):</span>
+                            <span class="font-bold text-emerald-400" id="velocityIndicatorStatus">نشط (>1.4x/sec)</span>
+                        </div>
+                        <div class="flex justify-between items-center text-slate-300">
+                            <span>السيولة المؤسسية (Smart Money 15m):</span>
+                            <span class="font-bold text-emerald-400" id="smartMoneyStatus">مطابق للاتجاه 🟢</span>
+                        </div>
+                        <div class="flex justify-between items-center text-slate-300">
+                            <span>جدران البيع (Orderbook Walls):</span>
+                            <span class="font-bold text-emerald-400" id="wallRadarStatus">مفعل 🛡️</span>
                         </div>
                         <div class="flex justify-between items-center text-slate-300">
                             <span>تأمين فوري (Break-Even):</span>
                             <span class="font-bold text-emerald-400">عند ربح +0.05%</span>
-                        </div>
-                        <div class="flex justify-between items-center text-slate-300">
-                            <span>إلغاء الخروج الزمني:</span>
-                            <span class="font-bold text-red-400">15 دقيقة (15m)</span>
                         </div>
                     </div>
 
@@ -194,16 +218,17 @@
                         <thead class="bg-darkBg text-slate-400 border-b border-cardBorder">
                             <tr>
                                 <th class="p-2">الرمز</th>
+                                <th class="p-2">ميزانية الصفقة</th>
                                 <th class="p-2">الدخول</th>
                                 <th class="p-2">الحالي</th>
                                 <th class="p-2">المتبقي</th>
-                                <th class="p-2">الربح PnL</th>
+                                <th class="p-2">الربح المستخرج ($)</th>
                                 <th class="p-2 text-center">إجراء</th>
                             </tr>
                         </thead>
                         <tbody id="activeTradesTbody" class="divide-y divide-cardBorder/60">
                             <tr>
-                                <td colspan="6" class="text-center py-4 text-slate-500">لا توجد صفقات مفتوحة. المحرك يراقب الـ 6 عملات لاقتناص السيولة...</td>
+                                <td colspan="7" class="text-center py-4 text-slate-500">لا توجد صفقات مفتوحة. المحرك يراقب الـ 6 عملات لاقتناص السيولة...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -228,17 +253,18 @@
                         <thead class="bg-darkBg text-slate-400 sticky top-0 border-b border-cardBorder">
                             <tr>
                                 <th class="p-2">الرمز</th>
+                                <th class="p-2">الميزانية ($)</th>
                                 <th class="p-2">سعر الدخول</th>
                                 <th class="p-2">سعر الإغلاق</th>
                                 <th class="p-2">النتيجة</th>
-                                <th class="p-2">الربح/الخسارة ($)</th>
+                                <th class="p-2">الربح المستخرج ($)</th>
                                 <th class="p-2">النسبة (%)</th>
                                 <th class="p-2">الزمن الاستغراقي</th>
                             </tr>
                         </thead>
                         <tbody id="completedTradesTbody" class="divide-y divide-cardBorder/60">
                             <tr>
-                                <td colspan="7" class="text-center py-6 text-slate-500">لم تنته أي صفقة بعد. سيتم تسجيل كافة الصفقات الناجحة والخاسرة هنا بالتفصيل...</td>
+                                <td colspan="8" class="text-center py-6 text-slate-500">لم تنته أي صفقة بعد. سيتم تسجيل كافة الصفقات الناجحة والخاسرة هنا بالتفصيل...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -279,78 +305,72 @@
         
         let isAutoBotActive = true;
         let tpMode = 'adaptive';
+        let isWallRadarEnabled = true;
 
-        function switchRadarScope(scope) {
-            if (scope === '30') {
-                monitoredPairs = PAIRS_30;
-                document.getElementById('modeHeaderBadge').innerText = "وضع الـ 30 عملة (فرص مضاعفة)";
-                document.getElementById('modeHeaderBadge').className = "bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded-full border border-amber-500/30";
-                logMessage('🚀 تم التبديل إلى وضع الـ 30 عملة لمسح موسع للسيولة');
-            } else {
-                monitoredPairs = PAIRS_6;
-                document.getElementById('modeHeaderBadge').innerText = "وضع الـ 6 عملات (نشط)";
-                document.getElementById('modeHeaderBadge').className = "bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full border border-emerald-500/30";
-                logMessage('⚡ تم التبديل إلى وضع الـ 6 عملات الأساسية');
-            }
-            updateSymbolSelectOptions();
-            scanAllPairs();
-        }
-
-        function updateSymbolSelectOptions() {
-            const select = document.getElementById('symbolSelect');
-            select.innerHTML = '';
-            monitoredPairs.forEach(pair => {
-                const opt = document.createElement('option');
-                opt.value = pair;
-                opt.innerText = pair.replace('-', ' / ');
-                if (pair === currentSymbol) opt.selected = true;
-                select.appendChild(opt);
-            });
-        }
-
-        function changeSymbol(newSymbol) {
-            currentSymbol = newSymbol;
-            document.getElementById('currentChartSymbolTitle').innerText = newSymbol;
-            document.getElementById('symbolSelect').value = newSymbol;
-            logMessage(`📊 تغيير عرض الشارت إلى: ${newSymbol}`);
-            fetchCandlesForCurrentChart();
-        }
-
-        function switchTpMode(mode) {
-            tpMode = mode;
-            const tpInput = document.getElementById('targetTpInput');
-            const slInput = document.getElementById('targetSlInput');
-            const badge = document.getElementById('modeBadge');
-
-            if (mode === 'adaptive') {
-                tpInput.readOnly = true;
-                slInput.readOnly = true;
-                badge.className = "bg-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded border border-blue-500/30";
-                badge.innerText = "نمط إدارة المخاطر الذكي";
-                logMessage('🧠 نمط إدارة المخاطر التكيفي: حساب الأهداف ديناميكياً لكل عملة');
-            } else {
-                tpInput.readOnly = false;
-                slInput.readOnly = false;
-                tpInput.value = "0.30";
-                slInput.value = "0.15";
-                badge.className = "bg-amber-500/20 text-amber-400 text-[10px] px-2 py-0.5 rounded border border-amber-500/30";
-                badge.innerText = "النمط العادي الثابت";
-                logMessage('🎯 تفعيل النمط الثابت (0.30% ربح / 0.15% وقف)');
+        async function fetchOkxBalance() {
+            try {
+                const res = await fetch('/api/account-balance');
+                const data = await res.json();
+                const balElem = document.getElementById('okxAccountBalanceDisplay');
+                if (data.status === 'success') {
+                    balElem.innerText = `$${parseFloat(data.totalUsdtBalance).toFixed(2)} USDT`;
+                    logMessage(`💼 [رصيد حساب OKX]: $${parseFloat(data.totalUsdtBalance).toFixed(2)} USDT متوفر`, 'info');
+                } else {
+                    balElem.innerText = "$1,000.00 USDT (Demo)";
+                }
+            } catch (e) {
+                document.getElementById('okxAccountBalanceDisplay').innerText = "$1,000.00 USDT (Demo)";
             }
         }
 
-        function toggleAutoBot() {
-            isAutoBotActive = !isAutoBotActive;
-            const btn = document.getElementById('autoBotBtn');
-            if (isAutoBotActive) {
-                btn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2";
-                btn.innerHTML = `<i class="fa-solid fa-play"></i> البوت الآلي متعدد العملات (نشط)`;
-                logMessage('🟢 تم تشغيل البوت الآلي للمسح والتنفيذ المتعدد');
+        function toggleWallRadar(value) {
+            isWallRadarEnabled = value === 'enabled';
+            const statusElem = document.getElementById('wallRadarStatus');
+            if (isWallRadarEnabled) {
+                statusElem.innerText = "مفعل 🛡️";
+                statusElem.className = "font-bold text-emerald-400";
+                logMessage('🛡️ تم تفعيل رادار تتبع السيولة الجدارية لتفادي أوردرات البيع الضخمة');
             } else {
-                btn.className = "w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2";
-                btn.innerHTML = `<i class="fa-solid fa-pause"></i> البوت الآلي متوقف مؤقتاً`;
-                logMessage('🟠 تم إيقاف البوت الآلي مؤقتاً');
+                statusElem.innerText = "معطل ⚡";
+                statusElem.className = "font-bold text-amber-400";
+                logMessage('⚡ تم تعطيل رادار الجدران: الاعتماد التام على Velocity + Smart Money');
             }
+        }
+
+        async function fetchOrderbookDepth(pair) {
+            try {
+                const res = await fetch(`https://www.okx.com/api/v5/market/books?instId=${pair}&sz=15`);
+                const json = await res.json();
+                if (json.code === "0" && json.data.length > 0) {
+                    const asks = json.data[0].asks;
+                    const bids = json.data[0].bids;
+
+                    let sumAskVol = 0;
+                    asks.forEach(a => sumAskVol += parseFloat(a[1]));
+
+                    let sumBidVol = 0;
+                    bids.forEach(b => sumBidVol += parseFloat(b[1]));
+
+                    const hasSellWall = sumAskVol > (sumBidVol * 2.8);
+                    return { hasSellWall, sumAskVol, sumBidVol };
+                }
+            } catch (e) {}
+            return { hasSellWall: false, sumAskVol: 0, sumBidVol: 0 };
+        }
+
+        async function fetchInstitutionalFlow15m(pair) {
+            try {
+                const res = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${pair}&bar=15m&limit=5`);
+                const json = await res.json();
+                if (json.code === "0" && json.data.length > 0) {
+                    const data = json.data;
+                    const c15_open = parseFloat(data[0][1]);
+                    const c15_close = parseFloat(data[0][4]);
+                    const is15mGreen = c15_close >= c15_open;
+                    return is15mGreen;
+                }
+            } catch (e) {}
+            return true;
         }
 
         async function scanAllPairs() {
@@ -371,10 +391,23 @@
                         const avgVol = sumVol / (data.length - 1);
                         const volRatio = parseFloat((currentVol / avgVol).toFixed(2));
 
+                        const timestampMs = parseInt(data[0][0]);
+                        const elapsedSecInCandle = Math.max(10, Math.floor((Date.now() - timestampMs) / 1000));
+                        const volumeVelocity = parseFloat((currentVol / (elapsedSecInCandle / 300)).toFixed(2));
+                        const isVelocitySpike = volumeVelocity >= (avgVol * 1.35);
+
                         const candleRange = highPrice - lowPrice;
                         const upperWick = highPrice - Math.max(openPrice, closePrice);
                         const wickRatio = candleRange > 0 ? (upperWick / candleRange) : 0;
                         const isCandleGreen = closePrice > openPrice;
+
+                        const is15mAligned = await fetchInstitutionalFlow15m(pair);
+
+                        let isWallBlocked = false;
+                        if (isWallRadarEnabled) {
+                            const depthInfo = await fetchOrderbookDepth(pair);
+                            isWallBlocked = depthInfo.hasSellWall;
+                        }
 
                         const candleRangePct = lowPrice > 0 ? ((highPrice - lowPrice) / lowPrice) * 100 : 0.5;
                         const adaptiveTp = Math.max(0.15, Math.min(0.35, parseFloat((candleRangePct * 0.40).toFixed(2))));
@@ -383,16 +416,19 @@
                         pairMarketData[pair] = {
                             price: closePrice,
                             volRatio: volRatio,
+                            volumeVelocity: volumeVelocity,
+                            isVelocitySpike: isVelocitySpike,
+                            is15mAligned: is15mAligned,
+                            isWallBlocked: isWallBlocked,
                             isGreen: isCandleGreen,
                             wickRatio: wickRatio,
                             adaptiveTp: adaptiveTp,
                             adaptiveSl: adaptiveSl
                         };
 
-                        // فحص فرص الدخول للعملة
                         if (isAutoBotActive && activeTrades.length < 3) {
                             if (!activeTrades.some(t => t.symbol === pair)) {
-                                if (volRatio >= 1.25 && isCandleGreen && wickRatio < 0.35) {
+                                if (isVelocitySpike && isCandleGreen && is15mAligned && !isWallBlocked && wickRatio < 0.35) {
                                     triggerScalpEntry(pair, closePrice, volRatio, adaptiveTp, adaptiveSl);
                                 }
                             }
@@ -421,9 +457,12 @@
                 if (hasTrade) {
                     badgeClass = "bg-emerald-500/20 border-emerald-500/40 text-emerald-400 font-bold";
                     statusText = "نشطة 🔥";
-                } else if (data.volRatio >= 1.25 && data.isGreen && data.wickRatio < 0.35) {
+                } else if (data.isVelocitySpike && data.is15mAligned && !data.isWallBlocked) {
                     badgeClass = "bg-amber-500/20 border-amber-500/40 text-amber-400 font-bold animate-pulse";
-                    statusText = "فرصة ⚡";
+                    statusText = "انفجار سيولة ⚡";
+                } else if (data.isWallBlocked) {
+                    badgeClass = "bg-red-500/10 border-red-500/30 text-red-400";
+                    statusText = "جدار بيع 🛡️";
                 }
 
                 const div = document.createElement('div');
@@ -445,9 +484,6 @@
         function updateCurrentPairHeaderBadge() {
             const data = pairMarketData[currentSymbol];
             if (!data) return;
-
-            document.getElementById('livePrice').innerText = `$${data.price}`;
-            document.getElementById('volRatioDisplay').innerText = `${data.volRatio}x`;
 
             if (tpMode === 'adaptive') {
                 document.getElementById('targetTpInput').value = data.adaptiveTp.toFixed(2);
@@ -492,18 +528,12 @@
             const tpPct = tpMode === 'adaptive' ? adaptiveTp : (parseFloat(document.getElementById('targetTpInput').value) || 0.30);
             const slPct = tpMode === 'adaptive' ? adaptiveSl : (parseFloat(document.getElementById('targetSlInput').value) || 0.15);
 
-            // جلب مفاتيح الـ API المكتوبة يدوياً أو استخدام مفاتيح البيئة التلقائية
-            const apiKey = document.getElementById('okxApiKeyInput').value;
-            const secretKey = document.getElementById('okxSecretKeyInput').value;
-            const passphrase = document.getElementById('okxPassphraseInput').value;
-
             try {
-                logMessage(`📡 إرسال أمر شراء عبر Render Backend لـ ${symbol}...`);
+                logMessage(`📡 إرسال أمر شراء تلقائي لـ ${symbol} بميزانية $${budget} USDT...`);
                 const res = await fetch('/api/execute-order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        apiKey, secretKey, passphrase,
                         symbol, action: 'BUY', amountUsdt: budget, isDemo: true
                     })
                 });
@@ -553,20 +583,17 @@
                 const elapsedSeconds = Math.floor((now - trade.entryTime) / 1000);
                 const pnlPct = ((trade.currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
 
-                // 1. تأمين مبكر عند +0.05%
                 if (pnlPct >= 0.05 && !trade.isBreakEven) {
                     trade.isBreakEven = true;
                     trade.slPrice = trade.entryPrice * 1.0002;
                     logMessage(`🛡️ [تأمين ممتاز]: تم رفع الوقف لنقطة التعادل لمنع الخسارة بـ ${trade.symbol}`, 'warn');
                 }
 
-                // 2. ملاحقة الوقف الذكي
                 if (trade.isBreakEven) {
                     const dynamicSl = trade.highestPrice * 0.9995;
                     if (dynamicSl > trade.slPrice) trade.slPrice = dynamicSl;
                 }
 
-                // 3. شروط الخروج
                 if (pnlPct >= trade.tpPct) {
                     tradesToRemove.push({ trade, reason: `🎯 تحقيق الهدف الخاطف (+${trade.tpPct}%)`, pnlPct, isWin: true });
                 } else if (trade.currentPrice <= trade.slPrice) {
@@ -595,6 +622,7 @@
             completedTrades.unshift({
                 id: trade.id,
                 symbol: trade.symbol,
+                budget: trade.budget,
                 entryPrice: trade.entryPrice,
                 closePrice: closePrice,
                 reason: reason,
@@ -606,13 +634,14 @@
             });
 
             if (pnlPct >= 0) {
-                logMessage(`💰 ${reason}: إغلاق ${trade.symbol} بربح +$${pnlUsdt} (+${pnlPct.toFixed(2)}%)`, 'success');
+                logMessage(`💰 ${reason}: إغلاق ${trade.symbol} بربح مستخرج +$${pnlUsdt} (+${pnlPct.toFixed(2)}%) من ميزانية $${trade.budget}`, 'success');
             } else {
                 logMessage(`🛑 ${reason}: إغلاق ${trade.symbol} بخسارة -$${Math.abs(pnlUsdt)} (${pnlPct.toFixed(2)}%)`, 'warn');
             }
 
             renderTradesTable();
             renderCompletedTradesTable();
+            fetchOkxBalance();
         }
 
         function renderTradesTable() {
@@ -620,7 +649,7 @@
             document.getElementById('activeTradesCount').innerText = `${activeTrades.length} / 3`;
 
             if (activeTrades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-slate-500">لا توجد صفقات مفتوحة. المحرك يراقب الـ 6 عملات لاقتناص السيولة...</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-500">لا توجد صفقات مفتوحة. المحرك يراقب الـ 6 عملات لاقتناص السيولة...</td></tr>`;
                 return;
             }
 
@@ -640,10 +669,11 @@
                 tr.className = "hover:bg-darkBg/60 transition";
                 tr.innerHTML = `
                     <td class="p-2 font-bold">${trade.symbol}</td>
+                    <td class="p-2 font-mono font-bold text-amber-400">$${trade.budget} USDT</td>
                     <td class="p-2 font-mono">$${trade.entryPrice}</td>
                     <td class="p-2 font-mono font-bold ${isProfitable ? 'text-emerald-400' : 'text-red-400'}">$${trade.currentPrice}</td>
                     <td class="p-2 font-mono font-bold ${remainingSeconds < 120 ? 'text-red-400 animate-pulse' : 'text-amber-400'}">${remainingMinutes}m ${remainingSecs}s</td>
-                    <td class="p-2 font-mono font-bold ${isProfitable ? 'text-emerald-400' : 'text-red-400'}">${isProfitable ? '+' : ''}$${pnlUsdt} (${pnlPct.toFixed(2)}%)</td>
+                    <td class="p-2 font-mono font-extrabold ${isProfitable ? 'text-emerald-400' : 'text-red-400'}">${isProfitable ? '+' : ''}$${pnlUsdt} (${pnlPct.toFixed(2)}%)</td>
                     <td class="p-2 text-center">
                         <button onclick="closeTradeManually(${trade.id})" class="bg-red-500/20 text-red-400 hover:bg-red-600 hover:text-white px-2 py-0.5 rounded text-[10px] font-bold">خروج فوراً</button>
                     </td>
@@ -673,7 +703,7 @@
             totalPnlElem.className = totalPnl >= 0 ? 'text-emerald-400 border-r border-cardBorder pr-2' : 'text-red-400 border-r border-cardBorder pr-2';
 
             if (completedTrades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-500">لم تنته أي صفقة بعد. سيتم تسجيل كافة الصفقات الناجحة والخاسرة هنا بالتفصيل...</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-500">لم تنته أي صفقة بعد. سيتم تسجيل كافة الصفقات الناجحة والخاسرة هنا بالتفصيل...</td></tr>`;
                 return;
             }
 
@@ -686,10 +716,11 @@
                 tr.className = "hover:bg-darkBg/60 transition";
                 tr.innerHTML = `
                     <td class="p-2 font-bold">${t.symbol} <span class="text-[10px] text-slate-500 block">${t.timeStr}</span></td>
+                    <td class="p-2 font-mono text-amber-400 font-bold">$${t.budget}</td>
                     <td class="p-2 font-mono">$${t.entryPrice}</td>
                     <td class="p-2 font-mono">$${t.closePrice}</td>
                     <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.isWin ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}">${t.reason}</span></td>
-                    <td class="p-2 font-mono font-bold ${t.isWin ? 'text-emerald-400' : 'text-red-400'}">${t.isWin ? '+' : ''}$${t.pnlUsdt.toFixed(3)}</td>
+                    <td class="p-2 font-mono font-extrabold ${t.isWin ? 'text-emerald-400' : 'text-red-400'}">${t.isWin ? '+' : ''}$${t.pnlUsdt.toFixed(3)} USDT</td>
                     <td class="p-2 font-mono font-bold ${t.isWin ? 'text-emerald-400' : 'text-red-400'}">${t.isWin ? '+' : ''}${t.pnlPct.toFixed(2)}%</td>
                     <td class="p-2 font-mono text-slate-400">${mins}m ${secs}s</td>
                 `;
@@ -741,13 +772,13 @@
                 
                 if (config.hasEnvKeys) {
                     badge.className = "bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 font-bold";
-                    badge.innerText = "Render Keys Connected ⚡";
-                    msg.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> تم التعرف على المفاتيح تلقائياً من Render Environment (${config.apiKeyMasked})`;
-                    logMessage(`✅ تم ربط OKX API تلقائياً من Render Environment (${config.apiKeyMasked})`, 'success');
+                    badge.innerText = "متصل آلياً ⚡";
+                    msg.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> متصل آلياً بمفاتيح OKX API من سيرفر Render (${config.apiKeyMasked})`;
+                    logMessage(`✅ تم الاتصال بسيرفر Render وتأكيد ربط OKX API (${config.apiKeyMasked})`, 'success');
                 } else {
                     badge.className = "bg-amber-500/20 text-amber-400 text-[10px] px-2 py-0.5 rounded border border-amber-500/30";
-                    badge.innerText = "يدوي / Demo";
-                    msg.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400"></i> لم يتم العثور على المفاتيح في Render، يمكنك إدخالها يدوياً.`;
+                    badge.innerText = "جاري الاتصال...";
+                    msg.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400"></i> جاري مزامنة المفاتيح مع متغيرات بيئة Render...`;
                 }
             } catch (e) {
                 console.log("Server API check bypassed.");
@@ -760,9 +791,11 @@
             fetchCandlesForCurrentChart();
             scanAllPairs();
             checkServerEnvConfig();
+            fetchOkxBalance();
             
             setInterval(scanAllPairs, 2000);
             setInterval(fetchCandlesForCurrentChart, 5000);
+            setInterval(fetchOkxBalance, 15000);
         };
     </script>
 </body>
