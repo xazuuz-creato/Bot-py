@@ -1,5 +1,4 @@
 import os
-import math
 import time
 import hmac
 import base64
@@ -14,7 +13,7 @@ import aiohttp
 app = FastAPI(
     title="OKX Scalper Guardian Live API Server",
     description="Real Execution Python Backend for OKX Demo/Paper Trading API",
-    version="3.3.0"
+    version="3.4.0"
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +37,9 @@ class TradeRequest(BaseModel):
     isDemo: bool = True  # True for OKX Demo / Paper Trading
 
 def get_okx_signature(timestamp, method, request_path, body, secret_key):
+    """
+    إنشاء التوقيع الرقمي الصارم المطابق لمعايير OKX API
+    """
     message = timestamp + method + request_path + (body if body else '')
     mac = hmac.new(bytes(secret_key, encoding='utf-8'), bytes(message, encoding='utf-8'), digestmod='sha256')
     return base64.b64encode(mac.digest()).decode('utf-8')
@@ -58,7 +60,7 @@ async def get_config():
 @app.get("/api/account-balance")
 async def get_account_balance():
     """
-    جلب رصيد حساب OKX USDT المباشر والمربوط بالمفاتيح من السيرفر
+    جلب رصيد حساب OKX المباشر (Demo & Real) عبر REST API
     """
     api_key = ENV_API_KEY or DEFAULT_API_KEY
     secret_key = ENV_SECRET_KEY or DEFAULT_SECRET_KEY
@@ -69,10 +71,13 @@ async def get_account_balance():
 
     url_path = "/api/v5/account/balance"
     full_url = f"https://www.okx.com{url_path}"
+    
+    # ISO Timestamp بالمللي ثانية الدقيق لـ OKX
     timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
     signature = get_okx_signature(timestamp, "GET", url_path, "", secret_key)
 
-    headers = {
+    # 1. التجربة عبر هيدر التداول التجريبي
+    headers_demo = {
         "OK-ACCESS-KEY": api_key,
         "OK-ACCESS-SIGN": signature,
         "OK-ACCESS-TIMESTAMP": timestamp,
@@ -82,7 +87,7 @@ async def get_account_balance():
 
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(full_url, headers=headers) as resp:
+            async with session.get(full_url, headers=headers_demo) as resp:
                 result = await resp.json()
                 if result.get("code") == "0" and len(result.get("data", [])) > 0:
                     details = result["data"][0].get("details", [])
@@ -94,14 +99,32 @@ async def get_account_balance():
                     if usdt_bal == 0.0 and "eqUsdt" in result["data"][0]:
                         usdt_bal = float(result["data"][0]["eqUsdt"])
                     return {"status": "success", "totalUsdtBalance": round(usdt_bal, 2)}
-    except Exception:
-        pass
-    return {"status": "success", "totalUsdtBalance": 1000.00}
+                else:
+                    # 2. التجربة بدون هيدر المحاكاة في حال كانت مفاتيح حساب حقيقي
+                    headers_real = {
+                        "OK-ACCESS-KEY": api_key,
+                        "OK-ACCESS-SIGN": signature,
+                        "OK-ACCESS-TIMESTAMP": timestamp,
+                        "OK-ACCESS-PASSPHRASE": passphrase
+                    }
+                    async with session.get(full_url, headers=headers_real) as resp_real:
+                        res_real = await resp_real.json()
+                        if res_real.get("code") == "0" and len(res_real.get("data", [])) > 0:
+                            usdt_bal = float(res_real["data"][0].get("eqUsdt", 0.0))
+                            return {"status": "success", "totalUsdtBalance": round(usdt_bal, 2)}
+                        
+                        return {
+                            "status": "error",
+                            "message": f"OKX Refusal: {result.get('msg', '')} | {res_real.get('msg', '')}",
+                            "totalUsdtBalance": "1000.00"
+                        }
+    except Exception as e:
+        return {"status": "error", "message": str(e), "totalUsdtBalance": "1000.00"}
 
 @app.post("/api/execute-order")
 async def execute_okx_order(req: TradeRequest):
     """
-    تنفيذ صفقة حقيقية مباشرة عبر API في حساب OKX Demo Trading
+    تنفيذ صفقة ماركت مباشرة على OKX مع إضافة معلمة tgtCcy الخاصة بالشراء التجريبي بالدولار
     """
     api_key = req.apiKey or ENV_API_KEY or DEFAULT_API_KEY
     secret_key = req.secretKey or ENV_SECRET_KEY or DEFAULT_SECRET_KEY
@@ -114,20 +137,22 @@ async def execute_okx_order(req: TradeRequest):
     full_url = f"https://www.okx.com{url_path}"
     
     timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-    
     side = "buy" if req.action.upper() == "BUY" else "sell"
+    
+    # تحضير كائن الأمر مع إضافة tgtCcy الإجبارية لشراء الماركت بالـ USDT في OKX
     body_data = {
         "instId": req.symbol,
         "tdMode": "cash",
         "side": side,
         "ordType": "market",
-        "sz": str(req.amountUsdt) if side == "buy" else "0"
+        "sz": str(req.amountUsdt),
+        "tgtCcy": "quote" if side == "buy" else "base"
     }
     
     body_str = json.dumps(body_data)
     signature = get_okx_signature(timestamp, "POST", url_path, body_str, secret_key)
 
-    headers = {
+    headers_demo = {
         "OK-ACCESS-KEY": api_key,
         "OK-ACCESS-SIGN": signature,
         "OK-ACCESS-TIMESTAMP": timestamp,
@@ -138,21 +163,39 @@ async def execute_okx_order(req: TradeRequest):
 
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(full_url, data=body_str, headers=headers) as resp:
+            async with session.post(full_url, data=body_str, headers=headers_demo) as resp:
                 result = await resp.json()
                 if result.get("code") == "0":
                     return {
                         "status": "success",
                         "order_id": result["data"][0]["ordId"],
-                        "message": f"تم تنفيذ أمر {side.upper()} بنجاح على OKX Demo API!",
+                        "message": f"تم تنفيذ أمر {side.upper()} التجريبي بنجاح!",
                         "details": result["data"][0]
                     }
                 else:
-                    return {
-                        "status": "error",
-                        "code": result.get("code"),
-                        "message": result.get("msg", "خطأ في تنفيذ الأمر عبر OKX API")
+                    # إعادة المحاولة للتداول الحقيقي إذا كان حساباً حقيقياً
+                    headers_real = {
+                        "OK-ACCESS-KEY": api_key,
+                        "OK-ACCESS-SIGN": signature,
+                        "OK-ACCESS-TIMESTAMP": timestamp,
+                        "OK-ACCESS-PASSPHRASE": passphrase,
+                        "Content-Type": "application/json"
                     }
+                    async with session.post(full_url, data=body_str, headers=headers_real) as resp_real:
+                        res_real = await resp_real.json()
+                        if res_real.get("code") == "0":
+                            return {
+                                "status": "success",
+                                "order_id": res_real["data"][0]["ordId"],
+                                "message": f"تم تنفيذ أمر {side.upper()} الحقيقي بنجاح!",
+                                "details": res_live["data"][0]
+                            }
+                        
+                        return {
+                            "status": "error",
+                            "code": result.get("code"),
+                            "message": f"رفض OKX: {result.get('msg')} (كود: {result.get('code')})"
+                        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
