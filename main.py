@@ -14,15 +14,19 @@ import aiohttp
 app = FastAPI(
     title="OKX Scalper Guardian Live API Server",
     description="Real Execution Python Backend for OKX Demo/Paper Trading API",
-    version="3.2.0"
+    version="3.3.0"
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Fetch environment variables from Render automatically
-ENV_API_KEY = os.environ.get("OKX_API_KEY", "")
-ENV_SECRET_KEY = os.environ.get("OKX_SECRET_KEY", "")
-ENV_PASSPHRASE = os.environ.get("OKX_PASSPHRASE", "")
+# Hardcoded OKX API Credentials provided by user + Fallback to Render Env Variables
+DEFAULT_API_KEY = "74e80fbc-e258-4aa5-ab64-a27882e34775"
+DEFAULT_SECRET_KEY = "0FCBDF7BE5A86DB101ABD43B89592EBC"
+DEFAULT_PASSPHRASE = "Aa11223344##"
+
+ENV_API_KEY = os.environ.get("OKX_API_KEY", DEFAULT_API_KEY)
+ENV_SECRET_KEY = os.environ.get("OKX_SECRET_KEY", DEFAULT_SECRET_KEY)
+ENV_PASSPHRASE = os.environ.get("OKX_PASSPHRASE", DEFAULT_PASSPHRASE)
 
 class TradeRequest(BaseModel):
     apiKey: str = ""
@@ -41,13 +45,14 @@ def get_okx_signature(timestamp, method, request_path, body, secret_key):
 @app.get("/api/config")
 async def get_config():
     """
-    إرجاع حالة توفر مفاتيح الـ API من متغيرات بيئة Render
+    إرجاع حالة توفر مفاتيح الـ API المدمجة مباشرة في كود السيرفر
     """
-    has_keys = bool(ENV_API_KEY and ENV_SECRET_KEY and ENV_PASSPHRASE)
+    api_k = ENV_API_KEY or DEFAULT_API_KEY
+    has_keys = bool(api_k)
     return {
         "hasEnvKeys": has_keys,
-        "apiKeyMasked": f"{ENV_API_KEY[:8]}...{ENV_API_KEY[-6:]}" if ENV_API_KEY else "",
-        "message": "تم تحميل مفاتيح OKX API من متغيرات بيئة Render بنجاح!" if has_keys else "لم يتم العثور على المفاتيح في بيئة Render"
+        "apiKeyMasked": f"{api_k[:8]}...{api_k[-6:]}" if api_k else "",
+        "message": "تم تفعيل مفاتيح OKX API مباشرة داخل كود السيرفر بنجاح! ⚡"
     }
 
 @app.get("/api/account-balance")
@@ -55,9 +60,9 @@ async def get_account_balance():
     """
     جلب رصيد حساب OKX USDT المباشر والمربوط بالمفاتيح من السيرفر
     """
-    api_key = ENV_API_KEY
-    secret_key = ENV_SECRET_KEY
-    passphrase = ENV_PASSPHRASE
+    api_key = ENV_API_KEY or DEFAULT_API_KEY
+    secret_key = ENV_SECRET_KEY or DEFAULT_SECRET_KEY
+    passphrase = ENV_PASSPHRASE or DEFAULT_PASSPHRASE
 
     if not api_key or not secret_key or not passphrase:
         return {"status": "error", "message": "المفاتيح غير متوفرة", "totalUsdtBalance": "1000.00"}
@@ -98,12 +103,12 @@ async def execute_okx_order(req: TradeRequest):
     """
     تنفيذ صفقة حقيقية مباشرة عبر API في حساب OKX Demo Trading
     """
-    api_key = req.apiKey or ENV_API_KEY
-    secret_key = req.secretKey or ENV_SECRET_KEY
-    passphrase = req.passphrase or ENV_PASSPHRASE
+    api_key = req.apiKey or ENV_API_KEY or DEFAULT_API_KEY
+    secret_key = req.secretKey or ENV_SECRET_KEY or DEFAULT_SECRET_KEY
+    passphrase = req.passphrase or ENV_PASSPHRASE or DEFAULT_PASSPHRASE
 
     if not api_key or not secret_key or not passphrase:
-        raise HTTPException(status_code=400, detail="مفاتيح OKX API غير موجودة في متغيرات بيئة Render")
+        raise HTTPException(status_code=400, detail="مفاتيح OKX API غير موجودة")
 
     url_path = "/api/v5/trade/order"
     full_url = f"https://www.okx.com{url_path}"
@@ -127,11 +132,9 @@ async def execute_okx_order(req: TradeRequest):
         "OK-ACCESS-SIGN": signature,
         "OK-ACCESS-TIMESTAMP": timestamp,
         "OK-ACCESS-PASSPHRASE": passphrase,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "x-simulated-trading": "1"
     }
-
-    if req.isDemo:
-        headers["x-simulated-trading"] = "1"
 
     try:
         async with aiohttp.ClientSession() as session:
