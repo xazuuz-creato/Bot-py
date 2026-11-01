@@ -72,11 +72,10 @@ async def get_account_balance():
     url_path = "/api/v5/account/balance"
     full_url = f"https://www.okx.com{url_path}"
     
-    # ISO Timestamp بالمللي ثانية الدقيق لـ OKX
+    # استخدام التوقيع والتنسيق الدقيق المطلوب لـ OKX Demo
     timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
     signature = get_okx_signature(timestamp, "GET", url_path, "", secret_key)
 
-    # 1. التجربة عبر هيدر التداول التجريبي
     headers_demo = {
         "OK-ACCESS-KEY": api_key,
         "OK-ACCESS-SIGN": signature,
@@ -89,6 +88,8 @@ async def get_account_balance():
         async with aiohttp.ClientSession() as session:
             async with session.get(full_url, headers=headers_demo) as resp:
                 result = await resp.json()
+                # طباعة الرد المباشر في سجلات Render لمعرفة السبب بوضوح
+                print("OKX API Balance Response:", result)
                 if result.get("code") == "0" and len(result.get("data", [])) > 0:
                     details = result["data"][0].get("details", [])
                     usdt_bal = 0.0
@@ -100,24 +101,11 @@ async def get_account_balance():
                         usdt_bal = float(result["data"][0]["eqUsdt"])
                     return {"status": "success", "totalUsdtBalance": round(usdt_bal, 2)}
                 else:
-                    # 2. التجربة بدون هيدر المحاكاة في حال كانت مفاتيح حساب حقيقي
-                    headers_real = {
-                        "OK-ACCESS-KEY": api_key,
-                        "OK-ACCESS-SIGN": signature,
-                        "OK-ACCESS-TIMESTAMP": timestamp,
-                        "OK-ACCESS-PASSPHRASE": passphrase
+                    return {
+                        "status": "error",
+                        "message": f"OKX Refusal Code ({result.get('code')}): {result.get('msg')}",
+                        "totalUsdtBalance": "1000.00 (Demo Fallback)"
                     }
-                    async with session.get(full_url, headers=headers_real) as resp_real:
-                        res_real = await resp_real.json()
-                        if res_real.get("code") == "0" and len(res_real.get("data", [])) > 0:
-                            usdt_bal = float(res_real["data"][0].get("eqUsdt", 0.0))
-                            return {"status": "success", "totalUsdtBalance": round(usdt_bal, 2)}
-                        
-                        return {
-                            "status": "error",
-                            "message": f"OKX Refusal: {result.get('msg', '')} | {res_real.get('msg', '')}",
-                            "totalUsdtBalance": "1000.00"
-                        }
     except Exception as e:
         return {"status": "error", "message": str(e), "totalUsdtBalance": "1000.00"}
 
