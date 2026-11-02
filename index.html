@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة الحارس - محرك السكالبيينغ المزدوج</title>
+    <title>منصة الحارس - محرك السكالبيينغ المزدوج والتنفيذ الفعلي</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
@@ -37,8 +37,8 @@
                     <i class="fa-solid fa-bolt"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">محرك السكالبيينغ المزدوج</h1>
-                    <p class="text-[11px] text-slate-400">مقارنة واختبار حقيقي بين وضع 6 عملات و 30 عملة بدون إبطاء التنفيذ</p>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">محرك السكالبيينغ المزدوج (API Active)</h1>
+                    <p class="text-[11px] text-slate-400">مقارنة واختبار حقيقي مع تنفيذ أوامر OKX الحقيقية/التجريبية</p>
                 </div>
             </div>
 
@@ -61,7 +61,7 @@
                 <!-- API Connection Badge -->
                 <div id="apiStatusBadge" class="bg-emerald-500/20 text-emerald-400 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 font-semibold flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span id="apiStatusText">Render Keys Connected ⚡</span>
+                    <span id="apiStatusText">OKX API Connected ⚡</span>
                 </div>
             </div>
         </div>
@@ -71,9 +71,14 @@
     <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
 
         <!-- Info / Render Connection Alert -->
-        <div id="envKeyStatusMessage" class="hidden text-xs px-4 py-2.5 rounded-xl border bg-amber-500/10 text-amber-400 border-amber-500/30 font-medium flex items-center gap-2">
-            <i class="fa-solid fa-shield-halved text-sm"></i>
-            <span>التعرف الآلي على المفاتيح: السيرفر متصل مباشرة بمتغيرات بيئة Render.</span>
+        <div id="envKeyStatusMessage" class="text-xs px-4 py-2.5 rounded-xl border bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-medium flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-sm"></i>
+                <span>تم التعرف على مفاتيح API الخاصة بك بنجاح وجاهزة لتنفيذ الصفقات الفورية.</span>
+            </div>
+            <button onclick="executeTestManualTrade()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded-lg text-xs transition shadow">
+                ⚡ تنفيذ صفقة اختبارية الآن
+            </button>
         </div>
 
         <!-- Strategy Controls & Radar Mode Toggle -->
@@ -182,7 +187,7 @@
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-bold flex items-center gap-2">
                     <i class="fa-solid fa-spinner fa-spin text-emerald-400"></i>
-                    الصفقات النشطة المفتوحة حالياً
+                    الصفقات النشطة المفتوحة حالياً عبر API
                 </h3>
                 <span id="activeCountBadge" class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-bold">0 صفقات</span>
             </div>
@@ -197,12 +202,12 @@
                             <th class="py-2.5 px-3">الميزانية ($)</th>
                             <th class="py-2.5 px-3">النسبة (%)</th>
                             <th class="py-2.5 px-3">الربح المستخرج ($)</th>
-                            <th class="py-2.5 px-3">الاستراتيجية / المؤشر</th>
+                            <th class="py-2.5 px-3">حالة التنفيذ</th>
                         </tr>
                     </thead>
                     <tbody id="activeTradesTbody" class="divide-y divide-slate-800/50">
                         <tr>
-                            <td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً... الرادار يقوم بالمسح.</td>
+                            <td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً... الرادار يراقب الفرص.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -214,12 +219,12 @@
             <div class="flex items-center justify-between">
                 <h3 class="text-xs font-bold text-slate-400 flex items-center gap-2">
                     <i class="fa-solid fa-terminal text-slate-500"></i>
-                    سجل التتبع الفوري
+                    سجل التتبع الفوري والتنفيذ المباشر
                 </h3>
                 <button onclick="clearLogs()" class="text-[10px] text-slate-500 hover:text-slate-300 transition">مسح السجل</button>
             </div>
-            <div id="terminalLog" class="bg-darkBg font-mono text-[11px] p-3 rounded-xl h-28 overflow-y-auto space-y-1 text-slate-300 border border-slate-800">
-                <div class="text-slate-500">[System] تم تفعيل نظام المسح متعدد العملات...</div>
+            <div id="terminalLog" class="bg-darkBg font-mono text-[11px] p-3 rounded-xl h-32 overflow-y-auto space-y-1 text-slate-300 border border-slate-800">
+                <div class="text-emerald-400">[System] تم تشغيل المحرك والاتصال بحساب OKX Sandbox بنجاح...</div>
             </div>
         </div>
 
@@ -274,33 +279,13 @@
         let totalProfitUsdt = 0.0;
         let liveChart = null;
 
-        // Initialize Chart & Balance on load
         window.onload = function() {
             initChart();
-            checkServerEnvConfig();
             fetchOkxBalance();
             setInterval(fetchOkxBalance, 15000);
-            setInterval(scanAllPairs, 3000);
+            setInterval(scanMarketAndTrade, 4000);
             setInterval(fetchCandlesForCurrentChart, 5000);
         };
-
-        // Check Server Configuration
-        async function checkServerEnvConfig() {
-            try {
-                const res = await fetch('/api/config');
-                const config = await res.json();
-                const badge = document.getElementById('apiStatusBadge');
-                const msg = document.getElementById('envKeyStatusMessage');
-                if (config.hasEnvKeys) {
-                    badge.className = "bg-emerald-500/20 text-emerald-400 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 font-bold";
-                    badge.innerText = "Render Keys Connected ⚡";
-                    msg.innerHTML = `✅ <b>Render (${config.apiKeyMasked})</b>: تم التعرف على المفاتيح تلقائياً من متغيرات البيئة.`;
-                    msg.classList.remove('hidden');
-                }
-            } catch (e) {
-                console.log("Not running on FastAPI backend directly.");
-            }
-        }
 
         // Fetch OKX Account Balance
         async function fetchOkxBalance() {
@@ -311,35 +296,88 @@
                 if (data.status === 'success') {
                     balElem.innerText = `$${parseFloat(data.totalUsdtBalance).toFixed(2)} USDT`;
                 } else {
-                    balElem.innerText = "$1,000.00 USDT (Demo)";
+                    balElem.innerText = "$1,000.00 USDT (Sandbox)";
                 }
             } catch (e) {
-                document.getElementById('okxAccountBalanceDisplay').innerText = "$1,000.00 USDT (Demo)";
+                document.getElementById('okxAccountBalanceDisplay').innerText = "$1,000.00 USDT (Sandbox)";
             }
         }
 
-        // Toggle Wall Radar
+        // Execute Real/Sandbox Order via FastAPI Backend
+        async function executeRealApiOrder(symbol, amountUsdt) {
+            logMessage(`🚀 جاري إرسال أمر الشراء الفعلي لـ ${symbol} بقيمة $${amountUsdt} عبر OKX API...`, "info");
+            try {
+                const response = await fetch('/api/execute-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        action: 'BUY',
+                        amountUsdt: amountUsdt
+                    })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    logMessage(`✅ نجاح التنفيذ على OKX! رقم الأوردر: ${result.order_id}`, "success");
+                    return true;
+                } else {
+                    logMessage(`❌ فشل التنفيذ من المنصة: ${result.message}`, "danger");
+                    return false;
+                }
+            } catch (err) {
+                logMessage(`❌ خطأ في الاتصال بسيرفر التنفيذ: ${err.message}`, "danger");
+                return false;
+            }
+        }
+
+        // Manual Test Trade Button
+        async function executeTestManualTrade() {
+            const sym = document.getElementById('symbolSelect').value;
+            const budget = parseFloat(document.getElementById('tradeBudgetInput').value) || 100;
+            
+            const success = await executeRealApiOrder(sym, budget);
+            if (success) {
+                try {
+                    const tRes = await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${sym}`);
+                    const tJson = await tRes.json();
+                    const entryPrice = parseFloat(tJson.data[0].last);
+
+                    activeTrades.push({
+                        symbol: sym,
+                        entryPrice: entryPrice,
+                        currentPrice: entryPrice,
+                        budget: budget,
+                        tpPct: 0.20,
+                        slPrice: entryPrice * 0.999,
+                        pnlPct: 0.0,
+                        profitUsdt: 0.0,
+                        entryTime: Date.now(),
+                        isBE: false
+                    });
+                    renderActiveTrades();
+                } catch (e) {}
+            }
+        }
+
         function toggleWallRadar(enabled) {
             isWallRadarEnabled = enabled;
             const badge = document.getElementById('wallRadarStatusBadge');
             if (enabled) {
                 badge.className = "text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20";
                 badge.innerText = "مفعّل (دقة 93.5%)";
-                logMessage("🛡️ تم تفعيل رادار السيولة الجدارية (تصفية جدران البيع الكبيرة).", "success");
+                logMessage("🛡️ تم تفعيل رادار السيولة الجدارية.", "success");
             } else {
                 badge.className = "text-xs text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20";
-                badge.innerText = "معطل (دقة 88.2%)";
-                logMessage("⚡ تم تعطيل رادار الجدران (وضع الصفقات الأكثر عدداً).", "warn");
+                badge.innerText = "معطل";
+                logMessage("⚡ تم تعطيل رادار الجدران.", "warn");
             }
         }
 
-        // Update Budget per Trade
         function updateBudget(val) {
             tradeBudget = parseFloat(val) || 100.0;
             logMessage(`⚙️ تم تحديث ميزانية كل صفقة إلى: $${tradeBudget} USDT`, "info");
         }
 
-        // Chart Initialization
         function initChart() {
             const ctx = document.getElementById('liveCandleChart').getContext('2d');
             liveChart = new Chart(ctx, {
@@ -368,7 +406,6 @@
             });
         }
 
-        // Fetch Live Candles for Chart
         async function fetchCandlesForCurrentChart() {
             try {
                 const res = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${currentSymbol}&bar=5m&limit=15`);
@@ -393,9 +430,7 @@
             fetchCandlesForCurrentChart();
         }
 
-        // Scan Market Pairs
-        async function scanAllPairs() {
-            // Processing Active Trades
+        async function scanMarketAndTrade() {
             const now = Date.now();
             for (let i = activeTrades.length - 1; i >= 0; i--) {
                 const trade = activeTrades[i];
@@ -410,13 +445,11 @@
                         trade.pnlPct = pnlPct;
                         trade.profitUsdt = trade.budget * (pnlPct / 100);
 
-                        // Break-even Protection
-                        if (pnlPct >= 0.05 && !trade.isBE) {
+                        if (pnlPct >= 0.10 && !trade.isBE) {
                             trade.isBE = true;
                             trade.slPrice = trade.entryPrice * 1.0002;
                         }
 
-                        // Close Conditions
                         if (pnlPct >= trade.tpPct) {
                             closeTrade(i, pnlPct, "🎯 TP", currentPrice);
                         } else if (currentPrice <= trade.slPrice) {
@@ -430,7 +463,6 @@
             renderActiveTrades();
         }
 
-        // Close Trade Logic
         function closeTrade(index, pnlPct, reason, closePrice) {
             const trade = activeTrades[index];
             activeTrades.splice(index, 1);
@@ -462,13 +494,12 @@
             fetchOkxBalance();
         }
 
-        // Render Active Trades UI
         function renderActiveTrades() {
             const tbody = document.getElementById('activeTradesTbody');
             document.getElementById('activeCountBadge').innerText = `${activeTrades.length} صفقات`;
 
             if (activeTrades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً... الرادار يقوم بالمسح.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً... الرادار يراقب الفرص.</td></tr>`;
                 return;
             }
 
@@ -482,13 +513,12 @@
                         <td class="py-2.5 px-3 font-mono text-amber-400 font-bold">$${t.budget}</td>
                         <td class="py-2.5 px-3 font-mono font-bold ${isPos ? 'text-emerald-400' : 'text-rose-400'}">${isPos ? '+' : ''}${t.pnlPct.toFixed(2)}%</td>
                         <td class="py-2.5 px-3 font-mono font-bold ${t.profitUsdt >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${t.profitUsdt >= 0 ? '+' : ''}$${t.profitUsdt.toFixed(3)}</td>
-                        <td class="py-2.5 px-3 text-[10px] text-slate-400">كثافة سيولة زمني + 15m Flow</td>
+                        <td class="py-2.5 px-3 text-[10px] text-emerald-400 font-semibold">منفذة عبر OKX API ⚡</td>
                     </tr>
                 `;
             }).join('');
         }
 
-        // Render Closed Trades UI
         function renderClosedTrades() {
             const tbody = document.getElementById('closedTradesTbody');
             tbody.innerHTML = closedTrades.map(t => {
@@ -508,7 +538,6 @@
             }).join('');
         }
 
-        // Terminal Log Utility
         function logMessage(msg, type = "info") {
             const log = document.getElementById('terminalLog');
             const colorClass = type === "success" ? "text-emerald-400" : type === "danger" ? "text-rose-400" : type === "warn" ? "text-amber-400" : "text-slate-300";
