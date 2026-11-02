@@ -123,7 +123,7 @@ async def execute_okx_order(req: TradeRequest):
         "tdMode": "cash",
         "side": side,
         "ordType": "market",
-        "sz": str(req.amountUsdt),
+        "sz": str(int(req.amountUsdt)),
         "tgtCcy": "quote" if side == "buy" else "base"
     }
     
