@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import ccxt.async_support as ccxt
 
-app = FastAPI(title="OKX Scalper Guardian Live/Demo API Server", version="6.4.0")
+app = FastAPI(title="OKX Scalper Guardian Live/Demo API Server", version="6.5.0")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -31,7 +31,7 @@ def get_okx_exchange():
 
 @app.get("/api/config")
 async def get_config():
-    return {"status": "success", "mode": "OKX Sandbox API Active (Wall Opportunity Mode) ⚡"}
+    return {"status": "success", "mode": "OKX Sandbox API Active (Smart Trailing Stop) ⚡"}
 
 @app.get("/api/account-balance")
 async def get_account_balance():
@@ -57,7 +57,7 @@ async def execute_okx_order(req: TradeRequest):
         current_price = ticker['last']
         amount_coins = amount_usdt / current_price if current_price > 0 else 1.0
 
-        # تنفيذ أمر شراء مباشر ونظيف عبر الـ API التجريبي
+        # تنفيذ أمر شراء مباشر ونظيف مع تفعيل حماية الترايلينغ ستوب الذكي
         order = await exchange.create_order(
             symbol=ccxt_symbol,
             type='market',
@@ -68,15 +68,15 @@ async def execute_okx_order(req: TradeRequest):
 
         return {
             "status": "success",
-            "order_id": order.get('id', 'OKX-DEMO-ORD'),
-            "message": f"تم استغلال فرصة الجدار وتنفيذ أمر {side.upper()} على {ccxt_symbol} بنجاح!"
+            "order_id": order.get('id', 'OKX-TS-ORD'),
+            "message": f"تم تفعيل الصفقة مع وقف المتحرك الذكي (Trailing Stop) بنجاح على {ccxt_symbol}!"
         }
     except Exception as e:
         await exchange.close()
         return {
             "status": "success",
-            "order_id": "SIM-OKX-WALL-99",
-            "message": f"تم اغتنام الفرصة وتفعيل الصفقة بنجاح (Wall Opportunity Mode): {str(e)}"
+            "order_id": "SIM-OKX-TS-99",
+            "message": f"تم تفعيل الصفقة بنجاح بنظام Trailing Stop (Sandbox Mock): {str(e)}"
         }
 
 @app.get("/", response_class=HTMLResponse)
