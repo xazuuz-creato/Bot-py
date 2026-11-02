@@ -6,14 +6,14 @@ from pydantic import BaseModel
 import ccxt.async_support as ccxt
 
 app = FastAPI(
-    title="OKX Scalper Guardian Demo API Server",
-    description="Real Demo Execution Python Backend with CCXT",
-    version="5.0.0"
+    title="OKX Scalper Guardian Live/Demo API Server",
+    description="Real Account Order Execution Python Backend with CCXT",
+    version="6.0.0"
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# المفاتيح التلقائية للحساب التجريبي
+# المفاتيح المباشرة من صورتك المرفقة
 DEFAULT_API_KEY = "74e80fbc-e258-4aa5-ab64-a27882e34775"
 DEFAULT_SECRET_KEY = "0FCBDF7BE5A86DB101ABD43B89592EBC"
 DEFAULT_PASSPHRASE = "Aa11223344##"
@@ -32,7 +32,7 @@ class TradeRequest(BaseModel):
 
 def get_okx_exchange(api_key=None, secret_key=None, passphrase=None):
     """
-    إنشاء كائن منصة OKX عبر مكتبة CCXT وضبط بيئة التداول التجريبي (Demo Trading)
+    إنشاء كائن منصة OKX المباشر عبر مكتبة CCXT
     """
     exchange = ccxt.okx({
         'apiKey': api_key or ENV_API_KEY or DEFAULT_API_KEY,
@@ -43,8 +43,6 @@ def get_okx_exchange(api_key=None, secret_key=None, passphrase=None):
             'defaultType': 'spot'
         }
     })
-    # تفعيل بيئة التجريبية في OKX فوراً في CCXT
-    exchange.set_sandbox_mode(True)
     return exchange
 
 @app.get("/api/config")
@@ -53,56 +51,51 @@ async def get_config():
     return {
         "hasEnvKeys": bool(api_k),
         "apiKeyMasked": f"{api_k[:8]}...{api_k[-6:]}" if api_k else "",
-        "mode": "OKX Demo Trading via CCXT ⚡",
-        "message": "تم الربط التجريبي بنجاح عبر CCXT!"
+        "mode": "OKX Live API via CCXT ⚡",
+        "message": "تم الربط المباشر بنجاح!"
     }
 
 @app.get("/api/account-balance")
 async def get_account_balance():
     """
-    جلب القيمة الإجمالية ورصيد الحساب التجريبي باستخدام CCXT
+    جلب القيمة الإجمالية ورصيد الحساب المباشر من OKX
     """
     exchange = get_okx_exchange()
     try:
         balance = await exchange.fetch_balance()
         await exchange.close()
         
-        # استخراج الرصيد المتاح بالإجمالي وبالـ USDT
         total_usdt = 0.0
         if 'USDT' in balance and 'total' in balance['USDT']:
             total_usdt = float(balance['USDT']['total'])
 
         if total_usdt <= 0 and 'info' in balance:
-            # محاولة قراءة القيمة الكلية المقدرة بالحساب
             for item in balance['info'].get('data', []):
-                total_usdt = float(item.get('totalEq', 17462.61))
+                total_usdt = float(item.get('totalEq', 0.0))
 
-        final_bal = round(total_usdt, 2) if total_usdt > 0 else 17462.61
-        return {"status": "success", "mode": "demo_ccxt", "totalUsdtBalance": final_bal}
+        final_bal = round(total_usdt, 2)
+        return {"status": "success", "mode": "okx_live", "totalUsdtBalance": final_bal}
 
     except Exception as e:
         await exchange.close()
-        print("CCXT Balance Error:", str(e))
-        return {"status": "success", "mode": "demo_fallback", "totalUsdtBalance": 17462.61, "error": str(e)}
+        print("OKX Balance Error:", str(e))
+        return {"status": "error", "message": str(e), "totalUsdtBalance": 0.0}
 
 @app.post("/api/execute-order")
 async def execute_okx_order(req: TradeRequest):
     """
-    تنفيذ أوردر فوري في OKX Demo باستخدام CCXT
+    تنفيذ أوردر فوري بداخل منصة OKX
     """
     exchange = get_okx_exchange(req.apiKey, req.secretKey, req.passphrase)
     try:
-        # تحويل رمز العملة للصيغة المعيارية في CCXT (مثلاً DOGE/USDT)
         ccxt_symbol = req.symbol.replace('-', '/')
-        side = req.action.lower()  # buy or sell
+        side = req.action.lower()
         amount_usdt = float(req.amountUsdt)
 
-        # استعلام عن السعر الحالي لحساب الكمية
         ticker = await exchange.fetch_ticker(ccxt_symbol)
         current_price = ticker['last']
-        amount_coins = amount_usdt / current_price if current_price > 0 else 10.0
+        amount_coins = amount_usdt / current_price if current_price > 0 else 1.0
 
-        # إرسال الأمر للمنصة (Market Buy / Market Sell)
         order = await exchange.create_order(
             symbol=ccxt_symbol,
             type='market',
@@ -117,16 +110,16 @@ async def execute_okx_order(req: TradeRequest):
         return {
             "status": "success",
             "order_id": order.get('id'),
-            "message": f"تم تنفيذ صفقة {side.upper()} على {ccxt_symbol} بنجاح عبر CCXT!",
+            "message": f"تم تنفيذ أمر {side.upper()} على {ccxt_symbol} بنجاح!",
             "details": order
         }
 
     except Exception as e:
         await exchange.close()
-        print("CCXT Order Error:", str(e))
+        print("OKX Order Execution Error:", str(e))
         return {
             "status": "error",
-            "message": f"خطأ تنفيذ الصفقة من OKX (CCXT): {str(e)}"
+            "message": f"رفضت المنصة الأمر: {str(e)}"
         }
 
 @app.get("/", response_class=HTMLResponse)
@@ -141,3 +134,11 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+```
+
+---
+
+### 📋 خطوات رفع الملف وتحديث السيرفر:
+1. انسخ الكود أعلاه وضعه بداخل ملف **`main.py`** في مستودعك بـ **GitHub**.
+2. احفظ التغييرات (`Commit Changes`).
+3. سيقوم **Render** بإعادة بناء وتشغيل السيرفر تلقائياً خلال ثوانٍ.
