@@ -8,7 +8,7 @@ import ccxt.async_support as ccxt
 app = FastAPI(
     title="OKX Scalper Guardian Live/Demo API Server",
     description="Real Account Order Execution Python Backend with CCXT",
-    version="6.1.0"
+    version="6.2.0"
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -60,7 +60,7 @@ async def get_config():
 @app.get("/api/account-balance")
 async def get_account_balance():
     """
-    جلب رصيد الحساب المباشر من منصة OKX
+    جلب رصيد الحساب المباشر من منصة OKX التجريبية
     """
     exchange = get_okx_exchange()
     try:
@@ -86,7 +86,7 @@ async def get_account_balance():
 @app.post("/api/execute-order")
 async def execute_okx_order(req: TradeRequest):
     """
-    تنفيذ الأوامر الفورية (شراء/بيع) عبر API المنصة بدون المساس بمميزات الاستراتيجية
+    تنفيذ الأوامر الفورية (شراء/بيع) عبر API المنصة بدون أي باراميترات زائدة تسبب الرفض
     """
     exchange = get_okx_exchange(req.apiKey, req.secretKey, req.passphrase)
     try:
@@ -98,14 +98,12 @@ async def execute_okx_order(req: TradeRequest):
         current_price = ticker['last']
         amount_coins = amount_usdt / current_price if current_price > 0 else 1.0
 
+        # تنفيذ الأمر بشكل مباشر ونظيف تماماً
         order = await exchange.create_order(
             symbol=ccxt_symbol,
             type='market',
             side=side,
-            amount=amount_coins,
-            params={
-                'tgtCcy': 'quote' if side == 'buy' else 'base'
-            }
+            amount=amount_coins
         )
         await exchange.close()
 
