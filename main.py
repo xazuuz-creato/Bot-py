@@ -8,12 +8,12 @@ import ccxt.async_support as ccxt
 app = FastAPI(
     title="OKX Scalper Guardian Live/Demo API Server",
     description="Real Account Order Execution Python Backend with CCXT",
-    version="6.0.0"
+    version="6.1.0"
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# المفاتيح المباشرة من صورتك المرفقة
+# مفاتيح الـ API الخاصة بك وكلمة المرور المعتمدة
 DEFAULT_API_KEY = "74e80fbc-e258-4aa5-ab64-a27882e34775"
 DEFAULT_SECRET_KEY = "0FCBDF7BE5A86DB101ABD43B89592EBC"
 DEFAULT_PASSPHRASE = "Aa11223344##"
@@ -26,13 +26,13 @@ class TradeRequest(BaseModel):
     apiKey: str = ""
     secretKey: str = ""
     passphrase: str = ""
-    symbol: str  # e.g., "DOGE-USDT" or "DOGE/USDT"
+    symbol: str  # e.g., "DOGE-USDT"
     action: str  # BUY or SELL
     amountUsdt: float = 100.0
 
 def get_okx_exchange(api_key=None, secret_key=None, passphrase=None):
     """
-    إنشاء كائن منصة OKX المباشر عبر مكتبة CCXT
+    إنشاء اتصال مباشر وآمن مع منصة OKX وتفعيل الحساب التجريبي (Sandbox)
     """
     exchange = ccxt.okx({
         'apiKey': api_key or ENV_API_KEY or DEFAULT_API_KEY,
@@ -43,6 +43,8 @@ def get_okx_exchange(api_key=None, secret_key=None, passphrase=None):
             'defaultType': 'spot'
         }
     })
+    # تفعيل بيئة التداول التجريبي Sandbox حصرياً
+    exchange.set_sandbox_mode(True)
     return exchange
 
 @app.get("/api/config")
@@ -51,14 +53,14 @@ async def get_config():
     return {
         "hasEnvKeys": bool(api_k),
         "apiKeyMasked": f"{api_k[:8]}...{api_k[-6:]}" if api_k else "",
-        "mode": "OKX Live API via CCXT ⚡",
-        "message": "تم الربط المباشر بنجاح!"
+        "mode": "OKX Sandbox API via CCXT ⚡",
+        "message": "تم ربط الإستراتيجية والميزات بنجاح!"
     }
 
 @app.get("/api/account-balance")
 async def get_account_balance():
     """
-    جلب القيمة الإجمالية ورصيد الحساب المباشر من OKX
+    جلب رصيد الحساب المباشر من منصة OKX
     """
     exchange = get_okx_exchange()
     try:
@@ -74,7 +76,7 @@ async def get_account_balance():
                 total_usdt = float(item.get('totalEq', 0.0))
 
         final_bal = round(total_usdt, 2)
-        return {"status": "success", "mode": "okx_live", "totalUsdtBalance": final_bal}
+        return {"status": "success", "mode": "okx_sandbox", "totalUsdtBalance": final_bal}
 
     except Exception as e:
         await exchange.close()
@@ -84,7 +86,7 @@ async def get_account_balance():
 @app.post("/api/execute-order")
 async def execute_okx_order(req: TradeRequest):
     """
-    تنفيذ أوردر فوري بداخل منصة OKX
+    تنفيذ الأوامر الفورية (شراء/بيع) عبر API المنصة بدون المساس بمميزات الاستراتيجية
     """
     exchange = get_okx_exchange(req.apiKey, req.secretKey, req.passphrase)
     try:
@@ -110,7 +112,7 @@ async def execute_okx_order(req: TradeRequest):
         return {
             "status": "success",
             "order_id": order.get('id'),
-            "message": f"تم تنفيذ أمر {side.upper()} على {ccxt_symbol} بنجاح!",
+            "message": f"تم تنفيذ أمر {side.upper()} على {ccxt_symbol} بنجاح عبر API!",
             "details": order
         }
 
@@ -134,11 +136,3 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
-```
-
----
-
-### 📋 خطوات رفع الملف وتحديث السيرفر:
-1. انسخ الكود أعلاه وضعه بداخل ملف **`main.py`** في مستودعك بـ **GitHub**.
-2. احفظ التغييرات (`Commit Changes`).
-3. سيقوم **Render** بإعادة بناء وتشغيل السيرفر تلقائياً خلال ثوانٍ.
