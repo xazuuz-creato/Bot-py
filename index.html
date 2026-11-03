@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة الحارس - رادار الاصتياد الصاعد والوقف الصفري</title>
+    <title>منصة الحارس الذكي - التحليل والوقف المتحرك المتوازن</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -31,11 +31,11 @@
         <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white text-xl shadow-lg shadow-emerald-500/20">
-                    <i class="fa-solid fa-crosshairs"></i>
+                    <i class="fa-solid fa-brain"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">محرك الرادار والتنفيذ (اصتياد الزخم + الوقف الصفري)</h1>
-                    <p class="text-[11px] text-slate-400">اصتياد العملات المؤكدة الارتفاع، حماية 0% خسارة، فحص 30 عملة</p>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">محرك الحارس الذكي (تحليل الأخطاء + وقف ذكي متوازن)</h1>
+                    <p class="text-[11px] text-slate-400">مراقبة الرادار، تحليل الصفقات، منع الخسائر المضاعفة، وربط OKX API</p>
                 </div>
             </div>
 
@@ -52,7 +52,7 @@
 
                 <div class="bg-emerald-500/20 text-emerald-400 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 font-semibold flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>Momentum Hunter Active 🎯</span>
+                    <span>AI Guardian Active 🧠</span>
                 </div>
             </div>
         </div>
@@ -61,10 +61,32 @@
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
 
+        <!-- AI Guardian Analysis Box (Dynamic Proposal Banner) -->
+        <div id="aiGuardianBanner" class="bg-cardBg border border-amber-500/40 rounded-2xl p-4 shadow-lg hidden">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                    <i class="fa-solid fa-robot text-sm"></i>
+                    <span>بوت الحارس الذكي: رصد خطأ في صفقة سابقة ويقترح طريقة الإصلاح</span>
+                </div>
+                <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-mono">تحليل ذكي</span>
+            </div>
+            <div id="aiProposalContent" class="text-xs text-slate-300 space-y-1 mb-3">
+                <!-- Dynamically filled -->
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="approveAiFix(true)" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-1.5 rounded-xl text-xs transition shadow">
+                    🛠️ أوافق على الإصلاح
+                </button>
+                <button onclick="approveAiFix(false)" class="bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white px-4 py-1.5 rounded-xl text-xs transition border border-rose-500/30">
+                    ❌ رفض
+                </button>
+            </div>
+        </div>
+
         <div class="text-xs px-4 py-2.5 rounded-xl border bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-medium flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-shield-halved text-sm"></i>
-                <span>بوت الرادار يراقب فقط العملات المتوقع صعودها الفوري ويرتبط تلقائياً بنظام الوقف المتحرك المحمي.</span>
+                <span>الوقف المتحرك الذكي مفعل؛ يمنع تضاعف الخسائر ويحمي الأرباح تلقائياً فور صعود الصفقة.</span>
             </div>
             <button onclick="executeManualTestOrder()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded-lg text-xs transition shadow">
                 ⚡ اختبار اصتياد فوري
@@ -127,12 +149,12 @@
             </div>
         </div>
 
-        <!-- Ranked Coins Table (Sorted for High Momentum Only) -->
+        <!-- Ranked Coins Table (Best to Worst) -->
         <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-bold flex items-center gap-2 text-slate-200">
                     <i class="fa-solid fa-ranking-star text-emerald-400"></i>
-                    قائمة العملات قيد المراجعة والتصنيف (مفلترة للزخم الصاعد)
+                    قائمة العملات قيد المراجعة والتصنيف (من الأفضل إلى الأسوأ)
                 </h3>
                 <span id="coinCountBadge" class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded border border-emerald-500/20 font-mono font-bold">جاري الفحص...</span>
             </div>
@@ -159,7 +181,7 @@
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-bold flex items-center gap-2">
                     <i class="fa-solid fa-spinner fa-spin text-emerald-400"></i>
-                    الصفقات النشطة (محتجزة في منطق الوقف المحمي)
+                    الصفقات النشطة (تحت حراسة الوقف المتحرك الذكي)
                 </h3>
                 <span id="activeCountBadge" class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-bold">0 صفقات</span>
             </div>
@@ -179,7 +201,7 @@
                         </tr>
                     </thead>
                     <tbody id="activeTradesTbody" class="divide-y divide-slate-800/50">
-                        <tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً... البوت يترقب فرصة صعود مؤكدة.</td></tr>
+                        <tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة... البوت يترقب زخم صاعد مؤكد.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -190,12 +212,12 @@
             <div class="flex items-center justify-between">
                 <h3 class="text-xs font-bold text-slate-400 flex items-center gap-2">
                     <i class="fa-solid fa-terminal text-slate-500"></i>
-                    سجل التتبع الفوري
+                    سجل الحارس الذكي الفوري
                 </h3>
                 <button onclick="clearLogs()" class="text-[10px] text-slate-500 hover:text-slate-300 transition">مسح السجل</button>
             </div>
             <div id="terminalLog" class="bg-darkBg font-mono text-[11px] p-3 rounded-xl h-32 overflow-y-auto space-y-1 text-slate-300 border border-slate-800">
-                <div class="text-emerald-400">[System] تم ربط بوت الرادار مع بوت التنفيذ لترصد فقط العملات الصاعدة بـ 0% مخاطرة...</div>
+                <div class="text-emerald-400">[System] تم تفعيل بوت كشف الأخطاء والوقف الذكي المتوازن بنجاح...</div>
             </div>
         </div>
 
@@ -257,6 +279,7 @@
             fetchOkxBalance();
             setInterval(fetchOkxBalance, 20000);
             setInterval(scanMarketAndAutoTrade, 3500);
+            setInterval(fetchGuardianStatus, 5000);
             setInterval(fetchCandlesForCurrentChart, 5000);
         };
 
@@ -270,8 +293,55 @@
             } catch (e) {}
         }
 
+        async function fetchGuardianStatus() {
+            try {
+                const res = await fetch('/api/guardian-status');
+                const data = await res.json();
+                if (data.status === 'success' && data.proposal) {
+                    showAiProposal(data.proposal);
+                } else {
+                    document.getElementById('aiGuardianBanner').classList.add('hidden');
+                }
+            } catch (e) {}
+        }
+
+        function showAiProposal(prop) {
+            const banner = document.getElementById('aiGuardianBanner');
+            const content = document.getElementById('aiProposalContent');
+            content.innerHTML = `
+                <p><strong>العملة المتأثرة:</strong> ${prop.symbol}</p>
+                <p><strong>تحليل سبب الخطأ:</strong> ${prop.cause}</p>
+                <p><strong>طريقة الإصلاح المقترحة:</strong> ${prop.solution}</p>
+            `;
+            banner.classList.remove('hidden');
+        }
+
+        async function approveAiFix(approve) {
+            try {
+                const res = await fetch('/api/ai-approve-fix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approve: approve })
+                });
+                const data = await res.json();
+                logMessage(data.message, approve ? "success" : "warn");
+                document.getElementById('aiGuardianBanner').classList.add('hidden');
+            } catch (e) {}
+        }
+
+        async function triggerAiAnalysisForLoss(symbol, pnl) {
+            try {
+                await fetch('/api/ai-analyze-loss', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol: symbol, pnlPct: pnl })
+                });
+                fetchGuardianStatus();
+            } catch (e) {}
+        }
+
         async function executeAutoApiOrder(symbol, amountUsdt) {
-            logMessage(`🎯 [اصتياد زخم] الرادار ينفذ صفقة صاعدة مؤكدة على ${symbol}...`, "info");
+            logMessage(`🧠 [الحارس الذكي] رصد فرصة صاعدة مؤكدة واصتياد الصفقة على ${symbol}...`, "info");
             try {
                 const response = await fetch('/api/execute-order', {
                     method: 'POST',
@@ -280,7 +350,7 @@
                 });
                 const result = await response.json();
                 if (result.status === 'success') {
-                    logMessage(`✅ [نجاح] تم دخول الصفقة الصاعدة على ${symbol} بنجاح`, "success");
+                    logMessage(`✅ [نجاح] تم دخول الصفقة المحمية للعملة ${symbol}`, "success");
                     return true;
                 }
                 return false;
@@ -312,7 +382,7 @@
                     currentPrice: entryPrice,
                     budget: budget,
                     tpPct: 0.25,
-                    slPrice: entryPrice, // حماية عند الدخول مباشرة
+                    slPrice: entryPrice, 
                     pnlPct: 0.0,
                     profitUsdt: 0.0,
                     entryTime: Date.now(),
@@ -349,18 +419,15 @@
                             symbol: sym,
                             price: price,
                             change: change24h,
-                            // تصفية العملات الصاعدة ذات الارتفاع الفوري حصرياً
-                            status: change24h > 0.5 ? "زخم صاعد مؤكد 🚀" : "مراقبة الاختراق 🔵"
+                            status: change24h > 0.4 ? "زخم صاعد آمن 🟢" : "مراقبة الارتداد 🔵"
                         });
                     }
                 } catch (e) {}
             }
 
-            // ترتيب العملات الأكثر صعوداً وتماسكاً في المقدمة
             reviewedCoins.sort((a, b) => b.change - a.change);
             renderRankedCoins(reviewedCoins);
 
-            // اصتياد العملة الأولى المصنفة بـ "زخم صاعد مؤكد"
             if (activeTrades.length < 3 && reviewedCoins.length > 0) {
                 const topCandidate = reviewedCoins[0];
                 if (topCandidate.change > 0 && Math.random() < 0.20 && !activeTrades.some(t => t.symbol === topCandidate.symbol)) {
@@ -383,17 +450,17 @@
                         trade.pnlPct = pnlPct;
                         trade.profitUsdt = trade.budget * (pnlPct / 100);
 
-                        // رفع وقف الخسارة لسعر الدخول فور صعود السعر بـ +0.03%
+                        // الوقف المتحرك الذكي لتأمين الأرباح وعدم تضاعف الخسائر
                         if (pnlPct >= 0.03 && !trade.isProtected) {
                             trade.slPrice = trade.entryPrice;
                             trade.isProtected = true;
-                            logMessage(`🛡️ [حماية صفرية] تم رفع وقف الخسارة لسعر الدخول للصفقة ${trade.symbol} (0% مخاطرة).`, "success");
+                            logMessage(`🛡️ [وقف ذكي] تم تأمين صفقة ${trade.symbol} عند سعر الدخول (مخاطرة معدومة).`, "success");
                         }
 
                         if (pnlPct >= trade.tpPct) {
                             closeTradeInternal(i, pnlPct, "🎯 TP الهدف", curPrice);
                         } else if (trade.isProtected && curPrice <= trade.slPrice) {
-                            closeTradeInternal(i, pnlPct, "🛡️ خروج بحفظ رأس المال (0% خسارة)", curPrice);
+                            closeTradeInternal(i, pnlPct, "🛡️ خروج آمن (بدون خسارة)", curPrice);
                         }
                     }
                 } catch (e) {}
@@ -406,7 +473,13 @@
             activeTrades.splice(index, 1);
             const netProfitUsdt = trade.budget * (pnlPct / 100) - (trade.budget * 0.0016);
             const isWin = netProfitUsdt >= 0;
-            if (isWin) winCount++; else lossCount++;
+            if (isWin) {
+                winCount++;
+            } else {
+                lossCount++;
+                // استدعاء بوت تحليل الأخطاء في حال حدثت أي خسارة نادرة
+                triggerAiAnalysisForLoss(trade.symbol, pnlPct);
+            }
             totalProfitUsdt += netProfitUsdt;
 
             closedTrades.unshift({
@@ -429,7 +502,7 @@
 
         function renderRankedCoins(coins) {
             const tbody = document.getElementById('rankedCoinsTbody');
-            document.getElementById('coinCountBadge').innerText = `${coins.length} عملة مفحوصة ومصنفة`;
+            document.getElementById('coinCountBadge').innerText = `${coins.length} عملة مفحوصة`;
             tbody.innerHTML = coins.map((c, idx) => `
                 <tr class="hover:bg-slate-900/40">
                     <td class="py-2 px-3 font-mono font-bold text-slate-400">#${idx + 1}</td>
@@ -445,7 +518,7 @@
             const tbody = document.getElementById('activeTradesTbody');
             document.getElementById('activeCountBadge').innerText = `${activeTrades.length} صفقات`;
             if (activeTrades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة... البوت يترقب زخم صاعد.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة... البوت يترقب زخم صاعد مؤكد.</td></tr>`;
                 return;
             }
             tbody.innerHTML = activeTrades.map(t => `
