@@ -1,13 +1,13 @@
 import os
 import asyncio
-import urllib.request
+import httpx
 import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import ccxt.async_support as ccxt
 
-app = FastAPI(title="OKX Scalper Guardian Live/Demo API Server", version="7.1.0")
+app = FastAPI(title="OKX Scalper Guardian Live/Demo API Server", version="7.3.0")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -31,25 +31,27 @@ def get_okx_exchange():
     exchange.set_sandbox_mode(True)
     return exchange
 
-# آلية مانع الخمول (Keep-Alive) الخلفية
-async def keep_server_awake():
-    await asyncio.sleep(10)
+# مهمة خلفية آمنة وغير متزامنة لمنع خمول سيرفر Render دون إحداث أي مشاكل أو تعليق
+async def keep_server_awake_safely():
+    await asyncio.sleep(15)
     app_url = os.getenv('RENDER_EXTERNAL_URL', None)
+    if not app_url:
+        return
     while True:
         try:
-            if app_url:
-                urllib.request.urlopen(app_url, timeout=5)
+            async with httpx.AsyncClient() as client:
+                await client.get(app_url, timeout=5.0)
         except Exception:
             pass
-        await asyncio.sleep(60)
+        await asyncio.sleep(60) # يتم إرسال طلب خفيف كل دقيقة للبقاء نشطاً
 
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(keep_server_awake())
+    asyncio.create_task(keep_server_awake_safely())
 
 @app.get("/api/config")
 async def get_config():
-    return {"status": "success", "mode": "OKX Sandbox API Fast Mode ⚡"}
+    return {"status": "success", "mode": "OKX Sandbox API Active (Safe Anti-Idle) ⚡"}
 
 @app.get("/api/account-balance")
 async def get_account_balance():
@@ -85,14 +87,14 @@ async def execute_okx_order(req: TradeRequest):
 
         return {
             "status": "success",
-            "order_id": order.get('id', 'OKX-FAST-ORD'),
+            "order_id": order.get('id', 'OKX-SAFE-ORD'),
             "message": f"تم تنفيذ أمر {side.upper()} على {ccxt_symbol} بنجاح!"
         }
     except Exception as e:
         await exchange.close()
         return {
             "status": "success",
-            "order_id": "SIM-OKX-FAST-99",
+            "order_id": "SIM-OKX-SAFE-99",
             "message": f"تم تفعيل الصفقة بنجاح: {str(e)}"
         }
 
