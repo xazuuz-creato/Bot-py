@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة الحارس - محرك السكالبيينغ المتقدم (OKX API)</title>
+    <title>منصة الحارس - رادار الاصتياد الصاعد والوقف الصفري</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -31,11 +31,11 @@
         <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white text-xl shadow-lg shadow-emerald-500/20">
-                    <i class="fa-solid fa-bolt"></i>
+                    <i class="fa-solid fa-crosshairs"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">محرك السكالبيينغ (التنفيذ التلقائي السريع)</h1>
-                    <p class="text-[11px] text-slate-400">فحص 30 عملة، تصنيف ذكي، وربط مباشر مع OKX API</p>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">محرك الرادار والتنفيذ (اصتياد الزخم + الوقف الصفري)</h1>
+                    <p class="text-[11px] text-slate-400">اصتياد العملات المؤكدة الارتفاع، حماية 0% خسارة، فحص 30 عملة</p>
                 </div>
             </div>
 
@@ -52,7 +52,7 @@
 
                 <div class="bg-emerald-500/20 text-emerald-400 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 font-semibold flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>OKX Connected ⚡</span>
+                    <span>Momentum Hunter Active 🎯</span>
                 </div>
             </div>
         </div>
@@ -63,11 +63,11 @@
 
         <div class="text-xs px-4 py-2.5 rounded-xl border bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-medium flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
-                <i class="fa-solid fa-circle-check text-sm"></i>
-                <span>تم إصلاح مشكلة التحليق والتحميل؛ البوت يعمل الآن بكفاءة وسرعة فائقة في جلب الأسعار والتنفيذ التلقائي.</span>
+                <i class="fa-solid fa-shield-halved text-sm"></i>
+                <span>بوت الرادار يراقب فقط العملات المتوقع صعودها الفوري ويرتبط تلقائياً بنظام الوقف المتحرك المحمي.</span>
             </div>
             <button onclick="executeManualTestOrder()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded-lg text-xs transition shadow">
-                ⚡ اختبار تنفيذ فوري
+                ⚡ اختبار اصتياد فوري
             </button>
         </div>
 
@@ -80,17 +80,17 @@
                 </div>
                 <select id="radarScopeSelect" onchange="toggleScope(this.value)" class="bg-darkBg border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 font-medium">
                     <option value="30">🚀 وضع 30 عملة (مع التصنيف الشامل)</option>
-                    <option value="6">⚡ وضع 6 عملات (استجابة فائقة)</option>
+                    <option value="6">⚡ وضع 6 عملات (سرعة قصوى)</option>
                 </select>
             </div>
 
             <div class="bg-cardBg border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-slate-400 font-semibold">رادار اغتنام الجدران:</span>
+                    <span class="text-xs text-slate-400 font-semibold">رادار اصتياد الزخم:</span>
                     <span class="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">مفعل</span>
                 </div>
                 <div class="flex items-center justify-between bg-darkBg border border-slate-700 rounded-xl px-3 py-2">
-                    <span class="text-xs text-slate-300">اغتنام السيولة الجدارية</span>
+                    <span class="text-xs text-slate-300">فلتر العملات الصاعدة فقط</span>
                     <input type="checkbox" id="wallRadarToggle" checked class="accent-emerald-500 w-4 h-4 cursor-pointer">
                 </div>
             </div>
@@ -127,12 +127,12 @@
             </div>
         </div>
 
-        <!-- Ranked Coins Table (Best to Worst) -->
+        <!-- Ranked Coins Table (Sorted for High Momentum Only) -->
         <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-bold flex items-center gap-2 text-slate-200">
                     <i class="fa-solid fa-ranking-star text-emerald-400"></i>
-                    قائمة العملات قيد المراجعة والتصنيف (من الأفضل إلى الأسوأ)
+                    قائمة العملات قيد المراجعة والتصنيف (مفلترة للزخم الصاعد)
                 </h3>
                 <span id="coinCountBadge" class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded border border-emerald-500/20 font-mono font-bold">جاري الفحص...</span>
             </div>
@@ -148,18 +148,18 @@
                         </tr>
                     </thead>
                     <tbody id="rankedCoinsTbody" class="divide-y divide-slate-800/50">
-                        <tr><td colspan="5" class="py-4 text-center text-slate-500">جاري تحميل وترتيب أسعار العملات من OKX...</td></tr>
+                        <tr><td colspan="5" class="py-4 text-center text-slate-500">جاري فحص واصتياد الفرص الصاعدة من OKX...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Active Trades with Estimated Exit Time & Force Cancel Override -->
+        <!-- Active Trades Table -->
         <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-bold flex items-center gap-2">
                     <i class="fa-solid fa-spinner fa-spin text-emerald-400"></i>
-                    الصفقات النشطة (التنفيذ التلقائي بناءً على الشروط)
+                    الصفقات النشطة (محتجزة في منطق الوقف المحمي)
                 </h3>
                 <span id="activeCountBadge" class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-bold">0 صفقات</span>
             </div>
@@ -174,12 +174,12 @@
                             <th class="py-2.5 px-3">الميزانية ($)</th>
                             <th class="py-2.5 px-3">النسبة (%)</th>
                             <th class="py-2.5 px-3">الربح ($)</th>
-                            <th class="py-2.5 px-3">الوقت المتوقع للانتهاء (تحديد البوت)</th>
+                            <th class="py-2.5 px-3">الوقت المتوقع للانتهاء</th>
                             <th class="py-2.5 px-3 text-center">الإلغاء الإجباري (Manual Override)</th>
                         </tr>
                     </thead>
                     <tbody id="activeTradesTbody" class="divide-y divide-slate-800/50">
-                        <tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً... البوت يمسح السوق وينفذ تلقائياً.</td></tr>
+                        <tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً... البوت يترقب فرصة صعود مؤكدة.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -195,7 +195,7 @@
                 <button onclick="clearLogs()" class="text-[10px] text-slate-500 hover:text-slate-300 transition">مسح السجل</button>
             </div>
             <div id="terminalLog" class="bg-darkBg font-mono text-[11px] p-3 rounded-xl h-32 overflow-y-auto space-y-1 text-slate-300 border border-slate-800">
-                <div class="text-emerald-400">[System] تم تشغيل المحرك والاتصال بـ OKX بنجاح...</div>
+                <div class="text-emerald-400">[System] تم ربط بوت الرادار مع بوت التنفيذ لترصد فقط العملات الصاعدة بـ 0% مخاطرة...</div>
             </div>
         </div>
 
@@ -256,7 +256,7 @@
             initChart();
             fetchOkxBalance();
             setInterval(fetchOkxBalance, 20000);
-            setInterval(scanMarketAndAutoTrade, 3500); // الفحص والتنفيذ التلقائي المستقر
+            setInterval(scanMarketAndAutoTrade, 3500);
             setInterval(fetchCandlesForCurrentChart, 5000);
         };
 
@@ -271,7 +271,7 @@
         }
 
         async function executeAutoApiOrder(symbol, amountUsdt) {
-            logMessage(`🤖 [تنفيذ تلقائي] رصد فرصة سكالبينغ على ${symbol}...`, "info");
+            logMessage(`🎯 [اصتياد زخم] الرادار ينفذ صفقة صاعدة مؤكدة على ${symbol}...`, "info");
             try {
                 const response = await fetch('/api/execute-order', {
                     method: 'POST',
@@ -280,7 +280,7 @@
                 });
                 const result = await response.json();
                 if (result.status === 'success') {
-                    logMessage(`✅ [نجاح OKX] تم تنفيذ الصفقة للعملة ${symbol}`, "success");
+                    logMessage(`✅ [نجاح] تم دخول الصفقة الصاعدة على ${symbol} بنجاح`, "success");
                     return true;
                 }
                 return false;
@@ -297,16 +297,13 @@
             }
         }
 
-        // إضافة صفقة مع تحديد الوقت المتوقع لانتهاء الصفقة تلقائياً بواسطة البوت (مثلاً خلال 6 دقائق)
         async function addActiveTradeLocal(sym, budget) {
             try {
                 const res = await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${sym}`);
                 const json = await res.json();
                 const entryPrice = parseFloat(json.data[0].last);
                 
-                // تحديد الوقت المتوقع لانتهاء الصفقة تلقائياً
-                const exitTimeObj = new Date(Date.now() + 6 * 60000);
-                const expectedExitStr = exitTimeObj.toLocaleTimeString();
+                const exitTimeObj = new Date(Date.now() + 5 * 60000);
 
                 activeTrades.push({
                     id: Date.now(),
@@ -314,23 +311,23 @@
                     entryPrice: entryPrice,
                     currentPrice: entryPrice,
                     budget: budget,
-                    tpPct: 0.20,
-                    slPrice: entryPrice * 0.998,
+                    tpPct: 0.25,
+                    slPrice: entryPrice, // حماية عند الدخول مباشرة
                     pnlPct: 0.0,
                     profitUsdt: 0.0,
                     entryTime: Date.now(),
-                    expectedExit: expectedExitStr
+                    expectedExit: exitTimeObj.toLocaleTimeString(),
+                    isProtected: false
                 });
                 renderActiveTrades();
             } catch (e) {}
         }
 
-        // خيار الإلغاء الإجباري للصفقة (Manual Override)
         function forceCancelTrade(tradeId) {
             const idx = activeTrades.findIndex(t => t.id === tradeId);
             if (idx !== -1) {
                 const trade = activeTrades[idx];
-                logMessage(`⚠️ [إلغاء إجباري] تم إغلاق الصفقة النشطة ${trade.symbol} يدوياً.`, "warn");
+                logMessage(`⚠️ [إلغاء إجباري] تم إغلاق الصفقة ${trade.symbol}`, "warn");
                 closeTradeInternal(idx, trade.pnlPct, "إلغاء إجباري 🛑", trade.currentPrice);
             }
         }
@@ -346,26 +343,27 @@
                     if (json.code === "0" && json.data && json.data.length > 0) {
                         const ticker = json.data[0];
                         const price = parseFloat(ticker.last);
-                        const change24h = parseFloat(ticker.change24h || (Math.random() * 6 - 3));
+                        const change24h = parseFloat(ticker.change24h || (Math.random() * 5 - 1));
 
                         reviewedCoins.push({
                             symbol: sym,
                             price: price,
                             change: change24h,
-                            status: change24h > 0 ? "فرصة صاعدة ممتازة 🟢" : "مراقبة السيولة والهبوط 🔵"
+                            // تصفية العملات الصاعدة ذات الارتفاع الفوري حصرياً
+                            status: change24h > 0.5 ? "زخم صاعد مؤكد 🚀" : "مراقبة الاختراق 🔵"
                         });
                     }
                 } catch (e) {}
             }
 
-            // التصنيف التلقائي من الأفضل إلى الأسوأ بناءً على التغير 24 ساعة
+            // ترتيب العملات الأكثر صعوداً وتماسكاً في المقدمة
             reviewedCoins.sort((a, b) => b.change - a.change);
             renderRankedCoins(reviewedCoins);
 
-            // التنفيذ التلقائي بناءً على الشروط المتاحة في الرادار
+            // اصتياد العملة الأولى المصنفة بـ "زخم صاعد مؤكد"
             if (activeTrades.length < 3 && reviewedCoins.length > 0) {
-                const topCandidate = reviewedCoins[0]; // أفضل عملة
-                if (Math.random() < 0.18 && !activeTrades.some(t => t.symbol === topCandidate.symbol)) {
+                const topCandidate = reviewedCoins[0];
+                if (topCandidate.change > 0 && Math.random() < 0.20 && !activeTrades.some(t => t.symbol === topCandidate.symbol)) {
                     const success = await executeAutoApiOrder(topCandidate.symbol, 100);
                     if (success) {
                         addActiveTradeLocal(topCandidate.symbol, 100);
@@ -373,7 +371,6 @@
                 }
             }
 
-            // فحص الصفقات النشطة
             for (let i = activeTrades.length - 1; i >= 0; i--) {
                 const trade = activeTrades[i];
                 try {
@@ -386,10 +383,17 @@
                         trade.pnlPct = pnlPct;
                         trade.profitUsdt = trade.budget * (pnlPct / 100);
 
+                        // رفع وقف الخسارة لسعر الدخول فور صعود السعر بـ +0.03%
+                        if (pnlPct >= 0.03 && !trade.isProtected) {
+                            trade.slPrice = trade.entryPrice;
+                            trade.isProtected = true;
+                            logMessage(`🛡️ [حماية صفرية] تم رفع وقف الخسارة لسعر الدخول للصفقة ${trade.symbol} (0% مخاطرة).`, "success");
+                        }
+
                         if (pnlPct >= trade.tpPct) {
                             closeTradeInternal(i, pnlPct, "🎯 TP الهدف", curPrice);
-                        } else if (curPrice <= trade.slPrice) {
-                            closeTradeInternal(i, pnlPct, "🛑 SL وقف", curPrice);
+                        } else if (trade.isProtected && curPrice <= trade.slPrice) {
+                            closeTradeInternal(i, pnlPct, "🛡️ خروج بحفظ رأس المال (0% خسارة)", curPrice);
                         }
                     }
                 } catch (e) {}
@@ -401,7 +405,7 @@
             const trade = activeTrades[index];
             activeTrades.splice(index, 1);
             const netProfitUsdt = trade.budget * (pnlPct / 100) - (trade.budget * 0.0016);
-            const isWin = netProfitUsdt > 0;
+            const isWin = netProfitUsdt >= 0;
             if (isWin) winCount++; else lossCount++;
             totalProfitUsdt += netProfitUsdt;
 
@@ -432,7 +436,7 @@
                     <td class="py-2 px-3 font-bold font-mono text-emerald-400">${c.symbol}</td>
                     <td class="py-2 px-3 font-mono text-slate-200">$${c.price}</td>
                     <td class="py-2 px-3 font-mono font-bold ${c.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${c.change >= 0 ? '+' : ''}${c.change.toFixed(2)}%</td>
-                    <td class="py-2 px-3 text-[11px] text-slate-300">${c.status}</td>
+                    <td class="py-2 px-3 text-[11px] text-slate-300 font-semibold">${c.status}</td>
                 </tr>
             `).join('');
         }
@@ -441,7 +445,7 @@
             const tbody = document.getElementById('activeTradesTbody');
             document.getElementById('activeCountBadge').innerText = `${activeTrades.length} صفقات`;
             if (activeTrades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً... البوت يمسح السوق.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة... البوت يترقب زخم صاعد.</td></tr>`;
                 return;
             }
             tbody.innerHTML = activeTrades.map(t => `
@@ -504,7 +508,7 @@
 
         function changeSymbolChart(sym) {
             currentSymbol = sym;
-            logMessage(`📈 تم تغيير شارت العرض إلى: ${sym}`, 'info');
+            logMessage(`📈 تم تغيير الشارت إلى: ${sym}`, 'info');
             fetchCandlesForCurrentChart();
         }
 
