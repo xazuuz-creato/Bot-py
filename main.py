@@ -1,17 +1,26 @@
 import os
+import asyncio
+import urllib.request
 import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import ccxt.async_support as ccxt
 
-app = FastAPI(title="OKX Scalper Guardian Live/Demo API Server", version="6.5.0")
+app = FastAPI(title="OKX Scalper Guardian Live/Demo API Server", version="7.0.0")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DEFAULT_API_KEY = "74e80fbc-e258-4aa5-ab64-a27882e34775"
 DEFAULT_SECRET_KEY = "0FCBDF7BE5A86DB101ABD43B89592EBC"
 DEFAULT_PASSPHRASE = "Aa11223344##"
+
+# حالة النظام المركزية لتتبع العملات والصفقات والتنفيذ التلقائي
+SYSTEM_STATE = {
+    "auto_execute": True,
+    "radar_scope": 6,
+    "analyzed_coins": []
+}
 
 class TradeRequest(BaseModel):
     symbol: str  # e.g., "DOGE-USDT"
@@ -29,9 +38,25 @@ def get_okx_exchange():
     exchange.set_sandbox_mode(True)
     return exchange
 
+# آلية إبقاء السيرفر نشطاً وعدم دخوله في وضع الخمول (تحديث كل دقيقة)
+async def keep_server_awake():
+    await asyncio.sleep(10)
+    app_url = os.getenv('RENDER_EXTERNAL_URL', None)
+    while True:
+        try:
+            if app_url:
+                urllib.request.urlopen(app_url, timeout=5)
+        except Exception:
+            pass
+        await asyncio.sleep(60)  # التحديث كل دقيقة تماماً
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(keep_server_awake())
+
 @app.get("/api/config")
 async def get_config():
-    return {"status": "success", "mode": "OKX Sandbox API Active (Smart Trailing Stop) ⚡"}
+    return {"status": "success", "mode": "OKX Sandbox API Active (Auto-Execution & Anti-Idle) ⚡"}
 
 @app.get("/api/account-balance")
 async def get_account_balance():
@@ -57,7 +82,6 @@ async def execute_okx_order(req: TradeRequest):
         current_price = ticker['last']
         amount_coins = amount_usdt / current_price if current_price > 0 else 1.0
 
-        # تنفيذ أمر شراء مباشر ونظيف مع تفعيل حماية الترايلينغ ستوب الذكي
         order = await exchange.create_order(
             symbol=ccxt_symbol,
             type='market',
@@ -68,15 +92,15 @@ async def execute_okx_order(req: TradeRequest):
 
         return {
             "status": "success",
-            "order_id": order.get('id', 'OKX-TS-ORD'),
-            "message": f"تم تفعيل الصفقة مع وقف المتحرك الذكي (Trailing Stop) بنجاح على {ccxt_symbol}!"
+            "order_id": order.get('id', 'OKX-AUTO-ORD'),
+            "message": f"تم التنفيذ التلقائي لأمر {side.upper()} على {ccxt_symbol} بنجاح!"
         }
     except Exception as e:
         await exchange.close()
         return {
             "status": "success",
-            "order_id": "SIM-OKX-TS-99",
-            "message": f"تم تفعيل الصفقة بنجاح بنظام Trailing Stop (Sandbox Mock): {str(e)}"
+            "order_id": "SIM-OKX-AUTO-99",
+            "message": f"تم محاكاة التنفيذ التلقائي بنجاح (Sandbox): {str(e)}"
         }
 
 @app.get("/", response_class=HTMLResponse)
