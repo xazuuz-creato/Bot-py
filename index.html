@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة الحارس الذكي - محرك السكالبيينغ المتقدم</title>
+    <title>منصة الحارس السريع - دقة عالية وسرعة فائقة</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -31,28 +31,28 @@
         <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white text-xl shadow-lg shadow-emerald-500/20">
-                    <i class="fa-solid fa-brain"></i>
+                    <i class="fa-solid fa-gauge-high"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">محرك الحارس الذكي (تأكيد شمعة الميكرو + وقف متوازن)</h1>
-                    <p class="text-[11px] text-slate-400">مراقبة الرادار، تحليل الصفقات، حماية رأس المال، وربط OKX API</p>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">محرك السكالبيينغ فائق السرعة (دقة عالية بدون قيود)</h1>
+                    <p class="text-[11px] text-slate-400">اصتياد فوري، وقف متحرك ذكي، وتحكم مرن بمؤشر الزخم</p>
                 </div>
             </div>
 
             <div class="flex items-center flex-wrap gap-3">
+                <div class="bg-darkBg border border-emerald-500/40 px-3 py-1.5 rounded-xl text-xs flex items-center gap-2">
+                    <span class="text-slate-400">حالة السوق:</span>
+                    <span id="marketTrendDisplay" class="text-emerald-400 font-bold">نشط وصاعد 🟢</span>
+                </div>
+
                 <div class="flex items-center gap-3 bg-darkBg border border-emerald-500/40 px-4 py-2 rounded-xl shadow-inner">
                     <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-base font-bold">
                         <i class="fa-solid fa-wallet"></i>
                     </div>
                     <div>
-                        <span class="text-[10px] text-slate-400 block font-semibold">رصيد حساب OKX:</span>
+                        <span class="text-[10px] text-slate-400 block font-semibold">رصيد OKX:</span>
                         <span id="okxAccountBalanceDisplay" class="text-emerald-400 font-mono font-extrabold text-base">جاري الجلب...</span>
                     </div>
-                </div>
-
-                <div class="bg-emerald-500/20 text-emerald-400 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 font-semibold flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>AI Guardian Pro 🧠</span>
                 </div>
             </div>
         </div>
@@ -61,67 +61,51 @@
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
 
-        <!-- AI Guardian Analysis Box -->
-        <div id="aiGuardianBanner" class="bg-cardBg border border-amber-500/40 rounded-2xl p-4 shadow-lg hidden">
-            <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2 text-amber-400 font-bold text-xs">
-                    <i class="fa-solid fa-robot text-sm"></i>
-                    <span>بوت الحارس الذكي: رصد تحليل سابق ويقترح طريقة الإصلاح</span>
-                </div>
-                <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-mono">تحليل ذكي</span>
+        <!-- Emergency Banner -->
+        <div id="emergencyBanner" class="bg-rose-500/10 border border-rose-500/40 rounded-2xl p-4 shadow-lg hidden">
+            <div class="flex items-center gap-3 text-rose-400 font-bold text-sm">
+                <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                <span>تنبيه طوارئ: بلغ عدد الصفقات الخاسرة 3 صفقات متتالية. تم إيقاف التداول أوتوماتيكياً.</span>
             </div>
-            <div id="aiProposalContent" class="text-xs text-slate-300 space-y-1 mb-3"></div>
+        </div>
+
+        <!-- Momentum Indicator Toggle Panel -->
+        <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <button onclick="approveAiFix(true)" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-1.5 rounded-xl text-xs transition shadow">
-                    🛠️ أوافق على الإصلاح
-                </button>
-                <button onclick="approveAiFix(false)" class="bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white px-4 py-1.5 rounded-xl text-xs transition border border-rose-500/30">
-                    ❌ رفض
-                </button>
+                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-bold">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                    <span class="text-xs font-bold block text-slate-200">مؤشر الزخم وكثافة السيولة (Momentum Velocity)</span>
+                    <span class="text-[10px] text-slate-400">يمكنك تفعيله لفلترة الإضافات أو تعطيله للعودة للاصتياد الفوري السريع</span>
+                </div>
             </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="toggleMomentum" class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
         </div>
 
-        <div class="text-xs px-4 py-2.5 rounded-xl border bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-medium flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-shield-halved text-sm"></i>
-                <span>الواجهة متصلة الآن بسيرفر FastAPI بنجاح؛ فلتر تأكيد شمعة الميكرو والوقف المتحرك مفعلان.</span>
-            </div>
-            <button onclick="executeManualTestOrder()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded-lg text-xs transition shadow">
-                ⚡ اختبار اصتياد فوري
-            </button>
-        </div>
-
-        <!-- Controls -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Controls Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-cardBg border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs text-slate-400 font-semibold">نطاق الرادار:</span>
                     <span id="scopeBadgeText" class="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">وضع الـ 30 عملة</span>
                 </div>
                 <select id="radarScopeSelect" onchange="toggleScope(this.value)" class="bg-darkBg border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 font-medium">
-                    <option value="30">🚀 وضع 30 عملة (مع التصنيف الشامل)</option>
+                    <option value="30">🚀 وضع 30 عملة (مع التصنيف السريع)</option>
                     <option value="6">⚡ وضع 6 عملات (سرعة قصوى)</option>
                 </select>
             </div>
 
             <div class="bg-cardBg border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-slate-400 font-semibold">فلتر تأكيد الشمعة:</span>
-                    <span class="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">مفعل</span>
+                    <span class="text-xs text-slate-400 font-semibold">حماية الخسائر المتتالية:</span>
+                    <span id="lossCounterBadge" class="text-xs font-mono font-bold text-emerald-400">0 / 3 (آمن)</span>
                 </div>
-                <div class="flex items-center justify-between bg-darkBg border border-slate-700 rounded-xl px-3 py-2">
-                    <span class="text-xs text-slate-300">منع الارتدادات الوهمية</span>
-                    <input type="checkbox" id="wallRadarToggle" checked class="accent-emerald-500 w-4 h-4 cursor-pointer">
-                </div>
-            </div>
-
-            <div class="bg-cardBg border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-slate-400 font-semibold">أقصى صفقات متزامنة:</span>
-                    <span id="maxTradesBadge" class="text-xs font-mono font-bold text-emerald-400">3 صفقات</span>
-                </div>
-                <div class="flex items-center gap-2 bg-darkBg border border-slate-700 rounded-xl px-3 py-1.5">
-                    <input type="range" id="maxTradesRange" min="1" max="5" value="3" oninput="document.getElementById('maxTradesBadge').innerText = `${this.value} صفقات`" class="w-full accent-emerald-500 cursor-pointer">
+                <div class="flex items-center gap-2 bg-darkBg border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300">
+                    <span>إيقاف تلقائي عند 3 خسائر متتالية $\rightarrow$ مفعل 🛡️</span>
                 </div>
             </div>
         </div>
@@ -152,7 +136,7 @@
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-bold flex items-center gap-2 text-slate-200">
                     <i class="fa-solid fa-ranking-star text-emerald-400"></i>
-                    قائمة العملات قيد المراجعة والتصنيف (من الأفضل إلى الأسوأ)
+                    قائمة العملات النشطة (مرتبة للأداء السريع)
                 </h3>
                 <span id="coinCountBadge" class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded border border-emerald-500/20 font-mono font-bold">جاري الفحص...</span>
             </div>
@@ -164,11 +148,11 @@
                             <th class="py-2 px-3">الرمز</th>
                             <th class="py-2 px-3">السعر الحالي</th>
                             <th class="py-2 px-3">التغير (24 ساعة)</th>
-                            <th class="py-2 px-3">حالة الرادار والتصنيف</th>
+                            <th class="py-2 px-3">حالة الرادار</th>
                         </tr>
                     </thead>
                     <tbody id="rankedCoinsTbody" class="divide-y divide-slate-800/50">
-                        <tr><td colspan="5" class="py-4 text-center text-slate-500">جاري فحص واصتياد الفرص الصاعدة من OKX...</td></tr>
+                        <tr><td colspan="5" class="py-4 text-center text-slate-500">جاري مسح الأسواق بسرعة فائقة...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -194,12 +178,12 @@
                             <th class="py-2.5 px-3">الميزانية ($)</th>
                             <th class="py-2.5 px-3">النسبة (%)</th>
                             <th class="py-2.5 px-3">الربح ($)</th>
-                            <th class="py-2.5 px-3">الوقت المتوقع</th>
+                            <th class="py-2.5 px-3">حالة الوقف</th>
                             <th class="py-2.5 px-3 text-center">الإلغاء الإجباري</th>
                         </tr>
                     </thead>
                     <tbody id="activeTradesTbody" class="divide-y divide-slate-800/50">
-                        <tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة... البوت يترقب زخم صاعد مؤكد.</td></tr>
+                        <tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -210,12 +194,12 @@
             <div class="flex items-center justify-between">
                 <h3 class="text-xs font-bold text-slate-400 flex items-center gap-2">
                     <i class="fa-solid fa-terminal text-slate-500"></i>
-                    سجل الحارس الذكي الفوري
+                    سجل التتبع الفوري
                 </h3>
                 <button onclick="clearLogs()" class="text-[10px] text-slate-500 hover:text-slate-300 transition">مسح السجل</button>
             </div>
             <div id="terminalLog" class="bg-darkBg font-mono text-[11px] p-3 rounded-xl h-32 overflow-y-auto space-y-1 text-slate-300 border border-slate-800">
-                <div class="text-emerald-400">[System] تم تشغيل واجهة الحارس الذكي والربط مع السيرفر بنجاح...</div>
+                <div class="text-emerald-400">[System] تم تفعيل محرك السكالبينغ السريع والتحكم بمؤشر الزخم بنجاح...</div>
             </div>
         </div>
 
@@ -261,6 +245,8 @@
         let closedTrades = [];
         let winCount = 0;
         let lossCount = 0;
+        let consecutiveLosses = 0;
+        let isTradingHalted = false;
         let totalProfitUsdt = 0.0;
         let liveChart = null;
 
@@ -275,9 +261,10 @@
         window.onload = function() {
             initChart();
             fetchOkxBalance();
+            fetchSystemStatus();
             setInterval(fetchOkxBalance, 20000);
-            setInterval(scanMarketAndAutoTrade, 3500);
-            setInterval(fetchGuardianStatus, 5000);
+            setInterval(fetchSystemStatus, 5000);
+            setInterval(scanMarketAndAutoTrade, 3000); // سرعة فائقة للمسح
             setInterval(fetchCandlesForCurrentChart, 5000);
         };
 
@@ -291,55 +278,28 @@
             } catch (e) {}
         }
 
-        async function fetchGuardianStatus() {
+        async function fetchSystemStatus() {
             try {
-                const res = await fetch('/api/guardian-status');
+                const res = await fetch('/api/system-status');
                 const data = await res.json();
-                if (data.status === 'success' && data.proposal) {
-                    showAiProposal(data.proposal);
-                } else {
-                    document.getElementById('aiGuardianBanner').classList.add('hidden');
+                if (data.status === 'success') {
+                    consecutiveLosses = data.consecutiveLosses;
+                    isTradingHalted = !data.tradingEnabled;
+                    document.getElementById('lossCounterBadge').innerText = `${consecutiveLosses} / 3 (${consecutiveLosses >= 3 ? 'متوقف طوارئ' : 'آمن'})`;
+
+                    if (isTradingHalted) {
+                        document.getElementById('emergencyBanner').classList.remove('hidden');
+                    } else {
+                        document.getElementById('emergencyBanner').classList.add('hidden');
+                    }
                 }
             } catch (e) {}
         }
 
-        function showAiProposal(prop) {
-            const banner = document.getElementById('aiGuardianBanner');
-            const content = document.getElementById('aiProposalContent');
-            content.innerHTML = `
-                <p><strong>العملة المتأثرة:</strong> ${prop.symbol}</p>
-                <p><strong>تحليل سبب الخطأ:</strong> ${prop.cause}</p>
-                <p><strong>طريقة الإصلاح المقترحة:</strong> ${prop.solution}</p>
-            `;
-            banner.classList.remove('hidden');
-        }
-
-        async function approveAiFix(approve) {
-            try {
-                const res = await fetch('/api/ai-approve-fix', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ approve: approve })
-                });
-                const data = await res.json();
-                logMessage(data.message, approve ? "success" : "warn");
-                document.getElementById('aiGuardianBanner').classList.add('hidden');
-            } catch (e) {}
-        }
-
-        async function triggerAiAnalysisForLoss(symbol, pnl) {
-            try {
-                await fetch('/api/ai-analyze-loss', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol: symbol, pnlPct: pnl })
-                });
-                fetchGuardianStatus();
-            } catch (e) {}
-        }
-
         async function executeAutoApiOrder(symbol, amountUsdt) {
-            logMessage(`🧠 [الحارس الذكي] تأكيد شمعة الميكرو واصتياد الصفقة على ${symbol}...`, "info");
+            if (isTradingHalted) return false;
+
+            logMessage(`⚡ [تنفيذ سريع] الدخول المباشر على العملة ${symbol}`, "info");
             try {
                 const response = await fetch('/api/execute-order', {
                     method: 'POST',
@@ -348,7 +308,7 @@
                 });
                 const result = await response.json();
                 if (result.status === 'success') {
-                    logMessage(`✅ [نجاح] تم دخول الصفقة المحمية للعملة ${symbol}`, "success");
+                    logMessage(`✅ [نجاح] تم تنفيذ الصفقة الفورية للعملة ${symbol}`, "success");
                     return true;
                 }
                 return false;
@@ -370,7 +330,6 @@
                 const res = await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${sym}`);
                 const json = await res.json();
                 const entryPrice = parseFloat(json.data[0].last);
-                const exitTimeObj = new Date(Date.now() + 5 * 60000);
 
                 activeTrades.push({
                     id: Date.now(),
@@ -378,12 +337,12 @@
                     entryPrice: entryPrice,
                     currentPrice: entryPrice,
                     budget: budget,
-                    tpPct: 0.25,
+                    tpPct: 0.20,
                     slPrice: entryPrice, 
                     pnlPct: 0.0,
                     profitUsdt: 0.0,
                     entryTime: Date.now(),
-                    expectedExit: exitTimeObj.toLocaleTimeString(),
+                    stopStatus: "محمي (0% خسارة)",
                     isProtected: false
                 });
                 renderActiveTrades();
@@ -400,6 +359,11 @@
         }
 
         async function scanMarketAndAutoTrade() {
+            if (isTradingHalted) return;
+
+            // قراءة حالة مؤشر الزخم (هل هو مفعل أم معطل؟)
+            const isMomentumEnabled = document.getElementById('toggleMomentum').checked;
+
             const activeSymbolsList = radarScope === 30 ? FULL_30_SYMBOLS : FULL_30_SYMBOLS.slice(0, 6);
             let reviewedCoins = [];
 
@@ -412,12 +376,17 @@
                         const price = parseFloat(ticker.last);
                         const change24h = parseFloat(ticker.change24h || (Math.random() * 5 - 1));
 
-                        reviewedCoins.push({
-                            symbol: sym,
-                            price: price,
-                            change: change24h,
-                            status: change24h > 0.4 ? "شمعة مؤكدة الصعود 🟢" : "مراقبة الاختراق 🔵"
-                        });
+                        // إذا كان مؤشر الزخم معطلاً، يسمح بالدخول المباشر السريع. إذا كان مفعلاً، يشترط إيجابية طفيفة
+                        const passesCondition = !isMomentumEnabled || (change24h > 0.2);
+
+                        if (passesCondition) {
+                            reviewedCoins.push({
+                                symbol: sym,
+                                price: price,
+                                change: change24h,
+                                status: "فرصة سريعة جاهزة 🟢"
+                            });
+                        }
                     }
                 } catch (e) {}
             }
@@ -427,7 +396,7 @@
 
             if (activeTrades.length < 3 && reviewedCoins.length > 0) {
                 const topCandidate = reviewedCoins[0];
-                if (topCandidate.change > 0 && Math.random() < 0.20 && !activeTrades.some(t => t.symbol === topCandidate.symbol)) {
+                if (Math.random() < 0.25 && !activeTrades.some(t => t.symbol === topCandidate.symbol)) {
                     const success = await executeAutoApiOrder(topCandidate.symbol, 100);
                     if (success) {
                         addActiveTradeLocal(topCandidate.symbol, 100);
@@ -447,16 +416,18 @@
                         trade.pnlPct = pnlPct;
                         trade.profitUsdt = trade.budget * (pnlPct / 100);
 
+                        // الوقف المتحرك الذكي لتأمين رأس المال
                         if (pnlPct >= 0.03 && !trade.isProtected) {
                             trade.slPrice = trade.entryPrice;
                             trade.isProtected = true;
-                            logMessage(`🛡️ [وقف ذكي] تأمين صفقة ${trade.symbol} عند سعر الدخول (0% خسارة).`, "success");
+                            trade.stopStatus = "مؤمن بسعر الدخول (0% خسارة)";
+                            logMessage(`🛡️ [وقف ذكي] تأمين صفقة ${trade.symbol} عند سعر الدخول.`, "success");
                         }
 
                         if (pnlPct >= trade.tpPct) {
                             closeTradeInternal(i, pnlPct, "🎯 TP الهدف", curPrice);
                         } else if (trade.isProtected && curPrice <= trade.slPrice) {
-                            closeTradeInternal(i, pnlPct, "🛡️ خروج آمن (بدون خسارة)", curPrice);
+                            closeTradeInternal(i, pnlPct, "🛡️ خروج آمن برأس المال المحفوظ", curPrice);
                         }
                     }
                 } catch (e) {}
@@ -469,12 +440,20 @@
             activeTrades.splice(index, 1);
             const netProfitUsdt = trade.budget * (pnlPct / 100) - (trade.budget * 0.0016);
             const isWin = netProfitUsdt >= 0;
+            
             if (isWin) {
                 winCount++;
+                consecutiveLosses = 0;
             } else {
                 lossCount++;
-                triggerAiAnalysisForLoss(trade.symbol, pnlPct);
+                consecutiveLosses++;
+                if (consecutiveLosses >= 3) {
+                    isTradingHalted = true;
+                    document.getElementById('emergencyBanner').classList.remove('hidden');
+                    logMessage(`🚨 [إيقاف طوارئ] بلغ عدد الخسائر 3 صفقات متتالية.`, "danger");
+                }
             }
+
             totalProfitUsdt += netProfitUsdt;
 
             closedTrades.unshift({
@@ -513,7 +492,7 @@
             const tbody = document.getElementById('activeTradesTbody');
             document.getElementById('activeCountBadge').innerText = `${activeTrades.length} صفقات`;
             if (activeTrades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة... البوت يترقب.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً...</td></tr>`;
                 return;
             }
             tbody.innerHTML = activeTrades.map(t => `
@@ -524,7 +503,7 @@
                     <td class="py-2.5 px-3 font-mono text-amber-400 font-bold">$${t.budget}</td>
                     <td class="py-2.5 px-3 font-mono font-bold ${t.pnlPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct.toFixed(2)}%</td>
                     <td class="py-2.5 px-3 font-mono font-bold ${t.profitUsdt >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${t.profitUsdt >= 0 ? '+' : ''}$${t.profitUsdt.toFixed(3)}</td>
-                    <td class="py-2.5 px-3 font-mono text-xs text-amber-300">${t.expectedExit}</td>
+                    <td class="py-2.5 px-3 font-mono text-xs text-amber-300">${t.stopStatus}</td>
                     <td class="py-2.5 px-3 text-center">
                         <button onclick="forceCancelTrade(${t.id})" class="bg-rose-500/20 hover:bg-rose-500 text-rose-400 text-white px-2.5 py-1 rounded text-[11px] font-bold transition border border-rose-500/30">إلغاء 🛑</button>
                     </td>
