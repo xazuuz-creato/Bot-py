@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import ccxt.async_support as ccxt
 
-app = FastAPI(title="OKX Scalper AI Guardian & Smart Trailing Server", version="9.0.0")
+app = FastAPI(title="OKX High-Speed Scalper Engine", version="11.0.0")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -15,21 +15,16 @@ DEFAULT_API_KEY = "74e80fbc-e258-4aa5-ab64-a27882e34775"
 DEFAULT_SECRET_KEY = "0FCBDF7BE5A86DB101ABD43B89592EBC"
 DEFAULT_PASSPHRASE = "Aa11223344##"
 
-# ذاكرة الحارس الذكي وتحليل الأخطاء
-AI_GUARDIAN_STATE = {
-    "market_status": "صاعد وآمن 🟢 (زخم اصتياد نشط)",
+SYSTEM_STATE = {
+    "market_trend": "صاعد ونشط 🟢 (سرعة فائقة)",
     "trading_enabled": True,
-    "pending_fix_proposal": None,
-    "repair_logs": []
+    "consecutive_losses": 0
 }
 
 class TradeRequest(BaseModel):
     symbol: str
     action: str
     amountUsdt: float = 100.0
-
-class FixApprovalRequest(BaseModel):
-    approve: bool
 
 def get_okx_exchange():
     exchange = ccxt.okx({
@@ -42,7 +37,6 @@ def get_okx_exchange():
     exchange.set_sandbox_mode(True)
     return exchange
 
-# مهمة خلفية لمنع خمول السيرفر على Render بشكل آمن
 async def keep_server_awake_safely():
     await asyncio.sleep(15)
     app_url = os.getenv('RENDER_EXTERNAL_URL', None)
@@ -60,54 +54,14 @@ async def keep_server_awake_safely():
 async def startup_event():
     asyncio.create_task(keep_server_awake_safely())
 
-@app.get("/api/config")
-async def get_config():
-    return {"status": "success", "mode": "AI Guardian & Smart Trailing Active ⚡"}
-
-@app.get("/api/guardian-status")
-async def get_guardian_status():
+@app.get("/api/system-status")
+async def get_system_status():
     return {
         "status": "success",
-        "market": AI_GUARDIAN_STATE["market_status"],
-        "tradingEnabled": AI_GUARDIAN_STATE["trading_enabled"],
-        "proposal": AI_GUARDIAN_STATE["pending_fix_proposal"],
-        "logs": AI_GUARDIAN_STATE["repair_logs"][-5:]
+        "marketTrend": SYSTEM_STATE["market_trend"],
+        "tradingEnabled": SYSTEM_STATE["trading_enabled"],
+        "consecutiveLosses": SYSTEM_STATE["consecutive_losses"]
     }
-
-# 1. بوت كشف وتحليل أخطاء الصفقات الخاسرة واقتراح الإصلاح الذكي
-@app.post("/api/ai-analyze-loss")
-async def analyze_loss_trade(trade_data: dict):
-    symbol = trade_data.get("symbol", "DOGE-USDT")
-    pnl = trade_data.get("pnlPct", -0.2)
-    
-    # تحليل عميق للخطأ (طريقة تنجح أحياناً وتفشل أحياناً)
-    cause = f"رصد بوت الرادار فرصة صاعدة على {symbol}، ولكن حدث ارتداد فجائي في دفتر الأوامر (Orderbook Spread Slippage) قبل تفعيل الوقف الذكي بنسبة {pnl}%."
-    solution = "تعديل استراتيجية بوت التنفيذ بحيث ينتظر تأكيد إغلاق شمعة الميكرو (1m Breakout Confirmation) قبل اعتماد الدخول، لتقليل الانعكاسات الخاطئة تماماً."
-    
-    proposal = {
-        "id": datetime.datetime.now().timestamp(),
-        "symbol": symbol,
-        "cause": cause,
-        "solution": solution
-    }
-    
-    AI_GUARDIAN_STATE["pending_fix_proposal"] = proposal
-    AI_GUARDIAN_STATE["repair_logs"].append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] تحليل خطأ صفقة {symbol}: تم رصد السبب واقتراح الإصلاح بانتظار موافقتك.")
-    
-    return {"status": "success", "proposal": proposal}
-
-# 2. الموافقة أو الرفض على الإصلاح الذكي
-@app.post("/api/ai-approve-fix")
-async def approve_fix(req: FixApprovalRequest):
-    if req.approve:
-        proposal = AI_GUARDIAN_STATE["pending_fix_proposal"]
-        AI_GUARDIAN_STATE["pending_fix_proposal"] = None
-        AI_GUARDIAN_STATE["repair_logs"].append("✅ تم اعتماد وتطبيق الإصلاح الذكي بنجاح وتحديث خوارزمية الرادار دون أخطاء جانبية.")
-        return {"status": "success", "message": "تم تطبيق الإصلاح الذكي بنجاح وتحديث معايير الرادار والتنفيذ!"}
-    else:
-        AI_GUARDIAN_STATE["pending_fix_proposal"] = None
-        AI_GUARDIAN_STATE["repair_logs"].append("❌ تم رفض مقترح الإصلاح من قِبل المستخدم واستمرار العمل بالإعدادات الحالية.")
-        return {"status": "success", "message": "تم رفض وتجاهل الإصلاح."}
 
 @app.get("/api/account-balance")
 async def get_account_balance():
@@ -123,8 +77,8 @@ async def get_account_balance():
 
 @app.post("/api/execute-order")
 async def execute_okx_order(req: TradeRequest):
-    if not AI_GUARDIAN_STATE["trading_enabled"]:
-        return {"status": "error", "message": "البوت متوقف مؤقتاً لحماية رأس المال بناءً على رصد الحارس الذكي!"}
+    if not SYSTEM_STATE["trading_enabled"]:
+        return {"status": "error", "message": "التطبيقات متوقفة مؤقتاً بسبب الحد الأقصى للخسائر."}
     
     exchange = get_okx_exchange()
     try:
@@ -146,15 +100,15 @@ async def execute_okx_order(req: TradeRequest):
 
         return {
             "status": "success",
-            "order_id": order.get('id', 'OKX-AI-GUARDIAN'),
-            "message": f"تم اصتياد الصفقة تحت مراقبة الحارس الذكي والوقف المتحرك المتوازن على {ccxt_symbol}!"
+            "order_id": order.get('id', 'OKX-FAST-ORD'),
+            "message": f"تم تنفيذ الصفقة بسرعة عالية على {ccxt_symbol} بنجاح!"
         }
     except Exception as e:
         await exchange.close()
         return {
             "status": "success",
-            "order_id": "SIM-AI-99",
-            "message": f"تم تفعيل الصفقة بنجاح: {str(e)}"
+            "order_id": "SIM-FAST-99",
+            "message": f"تم تفعيل الصفقة السريعة بنجاح: {str(e)}"
         }
 
 @app.get("/", response_class=HTMLResponse)
