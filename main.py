@@ -1,1551 +1,658 @@
-"""Rapid Guard V5: public Binance Spot data, isolated paper trading only.
-No private Binance API credentials are read or used.
-"""
-import asyncio
-import math
 import os
+import time
+import math
+import hmac
+import hashlib
 import secrets
 import sqlite3
-import tempfile
-import time
-from collections import defaultdict, deque
-from contextlib import asynccontextmanager, contextmanager
+import asyncio
 from pathlib import Path
+from collections import defaultdict, deque
+from contextlib import asynccontextmanager
+from typing import Optional, Literal
 
 import httpx
-import websockets
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-ROOT = Path(__file__).resolve().parent
-DB_PATH = os.getenv(
-    "DATABASE_PATH",
-    str(ROOT / "scalper.sqlite3")
-)
-ACCESS_KEY = os.getenv("APP_ACCESS_KEY", "")
+# ==========================================
+# CONFIGURATION & ENV KEYS
+# ==========================================
 
-FEE = float(os.getenv("DEMO_FEE_RATE", "0.001"))
-SLIP = float(os.getenv("DEMO_SLIPPAGE_RATE", "0.0002"))
-TARGET_PCT = float(os.getenv("TARGET_GROSS_PCT", "0.45"))
-STOP_PCT = float(os.getenv("STOP_GROSS_PCT", "0.30"))
-MAX_SPREAD = float(os.getenv("MAX_SPREAD_PCT", "0.05"))
-MIN_IMBALANCE = float(os.getenv("MIN_IMBALANCE", "1.5"))
-MIN_BUY_RATIO = float(os.getenv("MIN_BUY_RATIO", "0.60"))
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = Path(os.getenv("DATABASE_PATH", str(BASE_DIR / "scalper.sqlite3")))
+
+BINANCE_API_KEY = os.getenv("BINANCE_API_KEY", "").strip()
+BINANCE_SECRET_KEY = os.getenv("BINANCE_SECRET_KEY", "").strip()
+ALLOW_LIVE_TRADING = os.getenv("ALLOW_LIVE_TRADING", "false").lower() == "true"
+
+DEMO_START_BALANCE = float(os.getenv("DEMO_START_BALANCE", "10000"))
+FEE_RATE = float(os.getenv("DEMO_FEE_RATE", "0.001"))
+SLIPPAGE_RATE = float(os.getenv("DEMO_SLIPPAGE_RATE", "0.0002"))
+MIN_NET_TARGET_PCT = float(os.getenv("MIN_NET_TARGET_PCT", "0.10"))
+TARGET_GROSS_PCT = float(os.getenv("TARGET_GROSS_PCT", "0.45"))
+STOP_GROSS_PCT = float(os.getenv("STOP_GROSS_PCT", "0.30"))
+MAX_SPREAD_PCT = float(os.getenv("MAX_SPREAD_PCT", "0.10"))
 MAX_POSITIONS = int(os.getenv("MAX_POSITIONS", "3"))
 MAX_DAILY_LOSS = float(os.getenv("MAX_DAILY_LOSS_USDT", "25"))
-MAX_HOLD = int(os.getenv("MAX_HOLD_SECONDS", "180"))
-START_CASH = float(os.getenv("DEMO_START_BALANCE", "10000"))
+MIN_BUY_RATIO = float(os.getenv("MIN_BUY_RATIO", "0.55"))
+MIN_IMBALANCE = float(os.getenv("MIN_IMBALANCE", "1.3"))
+MAX_HOLD = int(os.getenv("DEFAULT_MAX_HOLD_SECONDS", "180"))
 
-SYMBOLS = [
+# مرونة التوكين للتنفيذ الفوري دون تأخير شبكي
+TOKEN_LIFETIME = 6.0
+MARKET_MAX_AGE = 10.0
+
+SUPPORTED_CANDIDATES = [
     "BTCUSDT", "ETHUSDT", "SOLUSDT",
     "XRPUSDT", "BNBUSDT", "DOGEUSDT",
     "ADAUSDT", "LINKUSDT", "AVAXUSDT",
-    "LTCUSDT", "DOTUSDT", "TRXUSDT"
+    "LTCUSDT", "DOTUSDT", "TRXUSDT",
+    "SUIUSDT", "NEARUSDT", "APTUSDT",
+    "ATOMUSDT", "UNIUSDT", "ETCUSDT",
+    "BCHUSDT", "XLMUSDT", "FILUSDT",
+    "ARBUSDT", "OPUSDT", "AAVEUSDT",
+    "INJUSDT", "PEPEUSDT", "SHIBUSDT",
+    "ICPUSDT", "ALGOUSDT", "HBARUSDT"
 ]
 
-if not (
-    0 <= FEE < .02
-    and 0 <= SLIP < .02
-    and 0 < TARGET_PCT < 10
-    and 0 < STOP_PCT < 10
-    and 0 < MAX_SPREAD < 2
-):
-    raise RuntimeError("Invalid risk/fee configuration")
+# ==========================================
+# FAST NATIVE BINANCE SPOT CLIENT (REPLACING CCXT)
+# ==========================================
 
-
-class Engine:
-    def __init__(self, db_path):
-        self.db_path = str(db_path)
-
-        Path(self.db_path).parent.mkdir(
-            parents=True,
-            exist_ok=True
+class NativeBinanceClient:
+    """بديل خفيف ومباشر فائق السرعة لمكتبة CCXT بدون أي تعقيدات"""
+    def __init__(self, api_key: str, secret_key: str):
+        self.api_key = api_key
+        self.secret_key = secret_key
+        self.base_url = "https://api.binance.com"
+        self.client = httpx.AsyncClient(
+            headers={"X-MBX-APIKEY": self.api_key},
+            timeout=5.0
         )
 
-        self.books = {}
-        self.samples = defaultdict(
-            lambda: deque(maxlen=35)
-        )
-        self.tape = defaultdict(
-            lambda: deque(maxlen=1500)
-        )
-        self.tokens = {}
-        self.last_scan = {}
-        self.verified = set()
-        self.connected = False
-        self.last_event = 0.0
-        self.last_error = ""
-        self.auto = False
-        self.lock = asyncio.Lock()
+    def _sign(self, params: dict) -> dict:
+        params["timestamp"] = int(time.time() * 1000)
+        query = "&".join([f"{k}={v}" for k, v in sorted(params.items())])
+        signature = hmac.new(
+            self.secret_key.encode('utf-8'),
+            query.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        params["signature"] = signature
+        return params
 
-        with self.db() as c:
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS wallet (
-                    id INTEGER PRIMARY KEY,
-                    cash REAL NOT NULL
-                )
-            """)
+    async def fetch_balance(self) -> dict:
+        params = self._sign({})
+        res = await self.client.get(f"{self.base_url}/api/v3/account", params=params)
+        res.raise_for_status()
+        data = res.json()
+        usdt_free = 0.0
+        usdt_total = 0.0
+        for item in data.get("balances", []):
+            if item["asset"] == "USDT":
+                usdt_free = float(item["free"])
+                usdt_total = usdt_free + float(item["locked"])
+                break
+        return {"free": {"USDT": usdt_free}, "total": {"USDT": usdt_total}}
 
-            c.execute(
-                "INSERT OR IGNORE INTO wallet VALUES (1,?)",
-                (START_CASH,)
-            )
-
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS positions (
-                    symbol TEXT PRIMARY KEY,
-                    entry REAL NOT NULL,
-                    qty REAL NOT NULL,
-                    cost REAL NOT NULL,
-                    buy_fee REAL NOT NULL,
-                    opened REAL NOT NULL,
-                    peak REAL NOT NULL,
-                    stop REAL NOT NULL,
-                    target REAL NOT NULL,
-                    hold INTEGER NOT NULL
-                )
-            """)
-
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS history (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    symbol TEXT NOT NULL,
-                    entry REAL NOT NULL,
-                    exit REAL NOT NULL,
-                    qty REAL NOT NULL,
-                    buy_fee REAL NOT NULL,
-                    sell_fee REAL NOT NULL,
-                    gross REAL NOT NULL,
-                    net REAL NOT NULL,
-                    opened REAL NOT NULL,
-                    closed REAL NOT NULL,
-                    reason TEXT NOT NULL
-                )
-            """)
-
-    @contextmanager
-    def db(self):
-        c = sqlite3.connect(
-            self.db_path,
-            timeout=10
-        )
-        c.row_factory = sqlite3.Row
-
-        try:
-            with c:
-                yield c
-        finally:
-            c.close()
-
-    def position(self, symbol):
-        with self.db() as c:
-            r = c.execute(
-                "SELECT * FROM positions WHERE symbol=?",
-                (symbol,)
-            ).fetchone()
-
-        return dict(r) if r else None
-
-    def state(self):
-        with self.db() as c:
-            cash = float(
-                c.execute(
-                    "SELECT cash FROM wallet WHERE id=1"
-                ).fetchone()[0]
-            )
-
-            positions = [
-                dict(r)
-                for r in c.execute(
-                    "SELECT * FROM positions ORDER BY opened DESC"
-                )
-            ]
-
-            history = [
-                dict(r)
-                for r in c.execute(
-                    "SELECT * FROM history ORDER BY id DESC LIMIT 100"
-                )
-            ]
-
-        equity = cash
-
-        for p in positions:
-            b = self.books.get(p["symbol"])
-
-            price = (
-                b["bid"]
-                if b and time.time() - b["t"] < 3
-                else p["entry"]
-            )
-
-            equity += (
-                p["qty"]
-                * price
-                * (1 - SLIP)
-                * (1 - FEE)
-            )
-
-        return {
-            "cashUsdt": cash,
-            "estimatedEquityUsdt": equity,
-            "positions": positions,
-            "history": history,
-            "autoEnabled": self.auto
-        }
-
-    def update_book(
-        self,
-        symbol,
-        bids,
-        asks,
-        at=None
-    ):
-        if symbol not in SYMBOLS:
-            raise ValueError("Unknown symbol")
-
-        try:
-            b = sorted(
-                [
-                    (float(p), float(q))
-                    for p, q in bids[:5]
-                ],
-                reverse=True
-            )
-
-            a = sorted(
-                [
-                    (float(p), float(q))
-                    for p, q in asks[:5]
-                ]
-            )
-
-        except (ValueError, TypeError, IndexError) as exc:
-            raise ValueError(
-                "Malformed order book"
-            ) from exc
-
-        if (
-            not b
-            or not a
-            or b[0][0] >= a[0][0]
-            or any(
-                not math.isfinite(x) or x <= 0
-                for pair in b + a
-                for x in pair
-            )
-        ):
-            raise ValueError(
-                "Invalid/crossed order book"
-            )
-
-        t = time.time() if at is None else at
-
-        imbalance = (
-            sum(p * q for p, q in b)
-            / sum(p * q for p, q in a)
-        )
-
-        self.books[symbol] = {
-            "bid": b[0][0],
-            "ask": a[0][0],
-            "imbalance": imbalance,
-            "t": t
-        }
-
-        self.samples[symbol].append({
-            "mid": (b[0][0] + a[0][0]) / 2,
-            "imbalance": imbalance,
-            "t": t
+    async def create_market_buy(self, symbol: str, quote_quantity: float) -> dict:
+        params = self._sign({
+            "symbol": symbol.upper(),
+            "side": "BUY",
+            "type": "MARKET",
+            "quoteOrderQty": round(quote_quantity, 2)
         })
+        res = await self.client.post(f"{self.base_url}/api/v3/order", params=params)
+        res.raise_for_status()
+        data = res.json()
+        executed_qty = float(data.get("executedQty", 0.0))
+        cummulative_quote = float(data.get("cummulativeQuoteQty", quote_quantity))
+        avg_price = cummulative_quote / executed_qty if executed_qty > 0 else 0.0
+        return {"average": avg_price, "filled": executed_qty, "raw": data}
 
-        self.last_event = time.time()
-
-    def update_trade(
-        self,
-        symbol,
-        price,
-        qty,
-        buyer_maker,
-        at=None
-    ):
-        if (
-            symbol not in SYMBOLS
-            or not all(
-                math.isfinite(v) and v > 0
-                for v in (price, qty)
-            )
-        ):
-            raise ValueError("Invalid trade")
-
-        self.tape[symbol].append({
-            "p": price,
-            "q": qty,
-            "buyer_maker": buyer_maker,
-            "t": (
-                time.time()
-                if at is None
-                else at
-            )
+    async def create_market_sell(self, symbol: str, quantity: float) -> dict:
+        params = self._sign({
+            "symbol": symbol.upper(),
+            "side": "SELL",
+            "type": "MARKET",
+            "quantity": f"{quantity:.6f}"
         })
+        res = await self.client.post(f"{self.base_url}/api/v3/order", params=params)
+        res.raise_for_status()
+        data = res.json()
+        executed_qty = float(data.get("executedQty", quantity))
+        cummulative_quote = float(data.get("cummulativeQuoteQty", 0.0))
+        avg_price = cummulative_quote / executed_qty if executed_qty > 0 else 0.0
+        return {"average": avg_price, "filled": executed_qty, "raw": data}
 
-        self.last_event = time.time()
+    async def close(self):
+        await self.client.aclose()
 
-    def fresh(self, symbol):
-        b = self.books.get(symbol)
+native_binance = None
+if BINANCE_API_KEY and BINANCE_SECRET_KEY:
+    native_binance = NativeBinanceClient(BINANCE_API_KEY, BINANCE_SECRET_KEY)
 
-        if not b or time.time() - b["t"] > 3:
-            raise ValueError(
-                "Market data stale; execution blocked"
+# ==========================================
+# MARKET STATE & DATABASE
+# ==========================================
+
+books = {}
+book_hist = defaultdict(lambda: deque(maxlen=40))
+trades = defaultdict(lambda: deque(maxlen=500))
+tokens = {}
+state_lock = asyncio.Lock()
+
+def connect():
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def initialize_db():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with connect() as con:
+        con.execute("PRAGMA journal_mode=WAL")
+        con.execute("CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY, value REAL NOT NULL)")
+        con.execute("INSERT OR IGNORE INTO meta(name,value) VALUES ('cash',?)", (DEMO_START_BALANCE,))
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS positions (
+                symbol TEXT PRIMARY KEY,
+                entry_price REAL NOT NULL,
+                quantity REAL NOT NULL,
+                entry_cost REAL NOT NULL,
+                entry_fee REAL NOT NULL,
+                entry_time REAL NOT NULL,
+                peak REAL NOT NULL,
+                stop_price REAL NOT NULL,
+                target_price REAL NOT NULL,
+                max_duration INTEGER NOT NULL,
+                is_live INTEGER DEFAULT 0
             )
-
-        return b
-
-    def features(self, symbol):
-        b = self.fresh(symbol)
-        now = time.time()
-
-        h = [
-            x for x in self.samples[symbol]
-            if now - x["t"] <= 6
-        ]
-
-        t = [
-            x for x in self.tape[symbol]
-            if now - x["t"] <= 5
-        ]
-
-        if (
-            len(h) < 7
-            or h[-1]["t"] - h[0]["t"] < .5
-            or not t
-        ):
-            raise ValueError(
-                "Insufficient recent depth/trade samples"
+        """)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS closed_trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT NOT NULL,
+                entry_price REAL NOT NULL,
+                exit_price REAL NOT NULL,
+                quantity REAL NOT NULL,
+                gross_pnl REAL NOT NULL,
+                entry_fee REAL NOT NULL,
+                exit_fee REAL NOT NULL,
+                net_pnl REAL NOT NULL,
+                opened_at REAL NOT NULL,
+                closed_at REAL NOT NULL,
+                reason TEXT NOT NULL
             )
-
-        buy = sum(
-            x["p"] * x["q"]
-            for x in t
-            if not x["buyer_maker"]
-        )
-
-        sell = sum(
-            x["p"] * x["q"]
-            for x in t
-            if x["buyer_maker"]
-        )
-
-        if buy + sell <= 0:
-            raise ValueError(
-                "No executed volume"
-            )
-
-        m = len(h) // 2
-
-        v1 = (
-            (h[m]["mid"] / h[0]["mid"] - 1)
-            / max(
-                h[m]["t"] - h[0]["t"],
-                .01
-            )
-        )
-
-        v2 = (
-            (h[-1]["mid"] / h[m]["mid"] - 1)
-            / max(
-                h[-1]["t"] - h[m]["t"],
-                .01
-            )
-        )
-
-        return {
-            "imbalance": round(
-                b["imbalance"], 4
-            ),
-            "sustained": round(
-                sum(
-                    x["imbalance"] >= MIN_IMBALANCE
-                    for x in h
-                ) / len(h),
-                4
-            ),
-            "buyRatio": round(
-                buy / (buy + sell), 4
-            ),
-            "spreadPct": round(
-                (b["ask"] - b["bid"])
-                / b["ask"] * 100,
-                5
-            ),
-            "velocityPctPerSec": round(
-                (
-                    h[-1]["mid"] / h[0]["mid"] - 1
-                ) * 100 / (
-                    h[-1]["t"] - h[0]["t"]
-                ),
-                5
-            ),
-            "acceleration": round(
-                (v2 - v1) * 100, 5
-            ),
-            "executedNotional5s": round(
-                buy + sell, 2
-            )
-        }
-
-    def daily_pnl(self):
-        midnight = (
-            int(time.time() // 86400) * 86400
-        )
-
-        with self.db() as c:
-            return float(
-                c.execute(
-                    """
-                    SELECT COALESCE(SUM(net),0)
-                    FROM history
-                    WHERE closed>=?
-                    """,
-                    (midnight,)
-                ).fetchone()[0]
-            )
-
-    def signal(self, symbol):
-        try:
-            f = self.features(symbol)
-
-        except ValueError as exc:
-            return {
-                "enter": False,
-                "reasons": [str(exc)]
-            }
-
-        friction = (
-            (2 * FEE + 2 * SLIP) * 100
-            + f["spreadPct"]
-        )
-
-        checks = [
-            (
-                f["imbalance"] >= MIN_IMBALANCE,
-                "عمق الشراء ضعيف"
-            ),
-            (
-                f["sustained"] >= .70,
-                "عمق الشراء غير مستمر"
-            ),
-            (
-                f["buyRatio"] >= MIN_BUY_RATIO,
-                "الشراء المنفذ ضعيف"
-            ),
-            (
-                f["spreadPct"] <= MAX_SPREAD,
-                "السبريد مرتفع"
-            ),
-            (
-                f["velocityPctPerSec"] > 0,
-                "الزخم غير إيجابي"
-            ),
-            (
-                f["acceleration"] >= -.002,
-                "الزخم يتباطأ"
-            ),
-            (
-                TARGET_PCT - friction >= .10,
-                "الهدف لا يغطي التكاليف"
-            )
-        ]
-
-        reasons = [
-            reason
-            for ok, reason in checks
-            if not ok
-        ]
-
-        with self.db() as c:
-            n = c.execute(
-                "SELECT COUNT(*) FROM positions"
-            ).fetchone()[0]
-
-        if self.position(symbol):
-            reasons.append(
-                "يوجد مركز مفتوح"
-            )
-
-        if n >= MAX_POSITIONS:
-            reasons.append(
-                "الحد الأقصى للمراكز"
-            )
-
-        if self.daily_pnl() <= -MAX_DAILY_LOSS:
-            reasons.append(
-                "حد الخسارة اليومي"
-            )
-
-        if symbol not in self.verified:
-            reasons.append(
-                "الزوج غير متحقق من Binance Spot"
-            )
-
-        result = {
-            "enter": not reasons,
-            "reasons": reasons,
-            "features": f,
-            "estimatedNetAtTargetPct": round(
-                TARGET_PCT - friction, 5
-            )
-        }
-
-        if not reasons:
-            token = secrets.token_urlsafe(24)
-
-            self.tokens[token] = (
-                symbol,
-                time.time() + 4,
-                self.books[symbol]["ask"]
-            )
-
-            result["signalToken"] = token
-
-        if len(self.tokens) > 300:
-            self.tokens = {
-                k: v
-                for k, v in self.tokens.items()
-                if v[1] > time.time()
-            }
-
-        return result
-
-    def buy(
-        self,
-        symbol,
-        budget,
-        token,
-        hold
-    ):
-        b = self.fresh(symbol)
-
-        record = self.tokens.pop(
-            token, None
-        )
-
-        if (
-            not record
-            or record[0] != symbol
-            or record[1] < time.time()
-            or abs(
-                b["ask"] / record[2] - 1
-            ) > .001
-        ):
-            raise ValueError(
-                "Invalid, used, or expired signal token"
-            )
-
-        if symbol not in self.verified:
-            raise ValueError(
-                "Unverified symbol"
-            )
-
-        # Recheck the complete entry conditions.
-        check = self.signal(symbol)
-
-        if not check["enter"]:
-            raise ValueError(
-                "Signal expired: "
-                + ", ".join(check["reasons"])
-            )
-
-        if not (
-            10 <= budget <= 100000
-            and 30 <= hold <= 600
-        ):
-            raise ValueError(
-                "Invalid budget/hold"
-            )
-
-        with self.db() as c:
-            cash = c.execute(
-                "SELECT cash FROM wallet WHERE id=1"
-            ).fetchone()[0]
-
-            if cash < budget:
-                raise ValueError(
-                    "Insufficient demo balance"
-                )
-
-            fill = b["ask"] * (1 + SLIP)
-
-            cost = budget / (1 + FEE)
-            fee = cost * FEE
-            qty = cost / fill
-
-            c.execute(
-                """
-                UPDATE wallet
-                SET cash=cash-?
-                WHERE id=1
-                """,
-                (budget,)
-            )
-
-            c.execute(
-                """
-                INSERT INTO positions
-                VALUES (?,?,?,?,?,?,?,?,?,?)
-                """,
-                (
-                    symbol,
-                    fill,
-                    qty,
-                    cost,
-                    fee,
-                    time.time(),
-                    fill,
-                    fill * (
-                        1 - STOP_PCT / 100
-                    ),
-                    fill * (
-                        1 + TARGET_PCT / 100
-                    ),
-                    hold
-                )
-            )
-
-        return {
-            "status": "success",
-            "action": "BUY",
-            "fillPrice": fill,
-            "quantity": qty,
-            "feeUsdt": fee,
-            "mode": "DEMO"
-        }
-
-    def sell(
-        self,
-        symbol,
-        reason="MANUAL"
-    ):
-        b = self.fresh(symbol)
-
-        with self.db() as c:
-            r = c.execute(
-                """
-                SELECT *
-                FROM positions
-                WHERE symbol=?
-                """,
-                (symbol,)
-            ).fetchone()
-
-            if not r:
-                raise ValueError(
-                    "No open position"
-                )
-
-            p = dict(r)
-
-            fill = b["bid"] * (1 - SLIP)
-
-            gross_proceeds = (
-                p["qty"] * fill
-            )
-
-            sell_fee = (
-                gross_proceeds * FEE
-            )
-
-            gross_pnl = (
-                gross_proceeds - p["cost"]
-            )
-
-            net = (
-                gross_pnl
-                - p["buy_fee"]
-                - sell_fee
-            )
-
-            c.execute(
-                """
-                UPDATE wallet
-                SET cash=cash+?
-                WHERE id=1
-                """,
-                (
-                    gross_proceeds - sell_fee,
-                )
-            )
-
-            c.execute(
-                """
-                DELETE FROM positions
-                WHERE symbol=?
-                """,
-                (symbol,)
-            )
-
-            c.execute(
-                """
-                INSERT INTO history (
-                    symbol,
-                    entry,
-                    exit,
-                    qty,
-                    buy_fee,
-                    sell_fee,
-                    gross,
-                    net,
-                    opened,
-                    closed,
-                    reason
-                )
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)
-                """,
-                (
-                    symbol,
-                    p["entry"],
-                    fill,
-                    p["qty"],
-                    p["buy_fee"],
-                    sell_fee,
-                    gross_pnl,
-                    net,
-                    p["opened"],
-                    time.time(),
-                    reason[:60]
-                )
-            )
-
-        return {
-            "status": "success",
-            "action": "SELL",
-            "fillPrice": fill,
-            "netPnlUsdt": net,
-            "feeUsdt": sell_fee,
-            "mode": "DEMO"
-        }
-
-    def exit_reason(self, symbol):
-        p = self.position(symbol)
-
-        if not p:
-            return None
-
-        bid = self.fresh(symbol)["bid"]
-
-        peak = max(
-            p["peak"], bid
-        )
-
-        stop = p["stop"]
-
-        if (
-            (peak / p["entry"] - 1) * 100
-            > (2 * FEE + 2 * SLIP) * 100 + .15
-        ):
-            stop = max(
-                stop,
-                peak * (1 - .0015)
-            )
-
-        if (
-            peak != p["peak"]
-            or stop != p["stop"]
-        ):
-            with self.db() as c:
-                c.execute(
-                    """
-                    UPDATE positions
-                    SET peak=?,stop=?
-                    WHERE symbol=?
-                    """,
-                    (
-                        peak,
-                        stop,
-                        symbol
-                    )
-                )
-
-        if bid <= stop:
-            return "STOP_OR_TRAIL"
-
-        if bid >= p["target"]:
-            return "TAKE_PROFIT"
-
-        if (
-            time.time() - p["opened"]
-            >= p["hold"]
-        ):
-            return "TIMEOUT"
-
-        return None
-
-
-engine = Engine(DB_PATH)
-
-
-def require_key(value):
-    if not ACCESS_KEY:
-        raise HTTPException(
-            503,
-            "اضبط APP_ACCESS_KEY في إعدادات السيرفر"
-        )
-
-    if (
-        not value
-        or not secrets.compare_digest(
-            value, ACCESS_KEY
-        )
-    ):
-        raise HTTPException(
-            401,
-            "مفتاح الوصول غير صحيح"
-        )
-
-
-class ControlIn(BaseModel):
-    enabled: bool
-
-
-class SymbolIn(BaseModel):
-    symbol: str
-
-
-class OrderIn(BaseModel):
-    symbol: str
-    action: str
-    amountUsdt: float = Field(
-        default=100,
-        ge=10,
-        le=100000
-    )
-    signalToken: str | None = None
-    maxHoldSeconds: int = Field(
-        default=MAX_HOLD,
-        ge=30,
-        le=600
-    )
-    useDemo: bool = True
-
-
-def valid_symbol(s):
-    s = (
-        s.upper()
-        .replace("/", "")
-        .strip()
-    )
-
-    if s not in SYMBOLS:
-        raise HTTPException(
-            400,
-            "رمز غير مدعوم"
-        )
-
-    return s
-
-
-async def verify_symbols():
-    urls = [
-        "https://data-api.binance.vision/api/v3/exchangeInfo",
-        "https://api.binance.com/api/v3/exchangeInfo"
-    ]
-
-    for url in urls:
-        try:
-            async with httpx.AsyncClient(
-                timeout=8
-            ) as client:
-                r = await client.get(url)
-                r.raise_for_status()
-                data = r.json()
-
-            valid = {
-                x["symbol"]
-                for x in data["symbols"]
-                if (
-                    x.get("status") == "TRADING"
-                    and x.get(
-                        "isSpotTradingAllowed",
-                        False
-                    )
-                )
-            }
-
-            result = (
-                set(SYMBOLS) & valid
-            )
-
-            if result:
-                return result
-
-        except Exception as exc:
-            engine.last_error = (
-                "Spot verification: "
-                + type(exc).__name__
-            )
-
-    # Fail closed if Binance verification fails.
-    return set()
-
-
-async def market_worker():
-    while True:
-        try:
-            verified = await verify_symbols()
-
-            engine.verified = verified
-
-            if not verified:
-                raise RuntimeError(
-                    "تعذر التحقق من أزواج Binance Spot"
-                )
-
-            streams = "/".join(
-                x
-                for s in sorted(verified)
-                for x in (
-                    s.lower() + "@depth5@100ms",
-                    s.lower() + "@aggTrade"
-                )
-            )
-
-            hosts = [
-                "wss://data-stream.binance.vision/stream?streams=",
-                "wss://stream.binance.com:9443/stream?streams="
-            ]
-
-            for host in hosts:
-                try:
-                    async with websockets.connect(
-                        host + streams,
-                        open_timeout=10,
-                        ping_interval=20,
-                        ping_timeout=20,
-                        max_size=2**20
-                    ) as ws:
-
-                        engine.connected = True
-                        engine.last_error = ""
-
-                        async for raw in ws:
-                            import json
-
-                            packet = json.loads(raw)
-                            d = packet.get(
-                                "data", {}
-                            )
-
-                            s = str(
-                                d.get("s")
-                                or packet.get(
-                                    "stream", ""
-                                ).split("@")[0]
-                            ).upper()
-
-                            if s not in verified:
-                                continue
-
-                            async with engine.lock:
-                                if (
-                                    "bids" in d
-                                    and "asks" in d
-                                ):
-                                    engine.update_book(
-                                        s,
-                                        d["bids"],
-                                        d["asks"]
-                                    )
-
-                                elif (
-                                    d.get("e")
-                                    == "aggTrade"
-                                ):
-                                    engine.update_trade(
-                                        s,
-                                        float(d["p"]),
-                                        float(d["q"]),
-                                        bool(d["m"])
-                                    )
-
-                except asyncio.CancelledError:
-                    raise
-
-                except Exception as exc:
-                    engine.last_error = (
-                        "Stream: "
-                        + type(exc).__name__
-                        + ": "
-                        + str(exc)[:100]
-                    )
-
-                finally:
-                    engine.connected = False
-
-                await asyncio.sleep(1)
-
-        except asyncio.CancelledError:
-            raise
-
-        except Exception as exc:
-            engine.connected = False
-            engine.last_error = str(exc)[:160]
-
-        await asyncio.sleep(5)
-
-
-async def monitor_worker():
-    while True:
-        try:
-            await asyncio.sleep(.6)
-
-            async with engine.lock:
-                for p in engine.state()["positions"]:
-                    try:
-                        reason = engine.exit_reason(
-                            p["symbol"]
-                        )
-
-                        if reason:
-                            engine.sell(
-                                p["symbol"],
-                                reason
-                            )
-
-                    except ValueError:
-                        # Never invent a fill with stale data.
-                        pass
-
-                if (
-                    not engine.auto
-                    or not engine.connected
-                ):
-                    continue
-
-                for symbol in sorted(
-                    engine.verified
-                ):
-                    if (
-                        time.time()
-                        - engine.last_scan.get(
-                            symbol, 0
-                        ) < 2
-                    ):
-                        continue
-
-                    engine.last_scan[symbol] = (
-                        time.time()
-                    )
-
-                    signal = engine.signal(
-                        symbol
-                    )
-
-                    if signal.get("enter"):
-                        try:
-                            engine.buy(
-                                symbol,
-                                100,
-                                signal["signalToken"],
-                                MAX_HOLD
-                            )
-
-                        except (
-                            ValueError,
-                            sqlite3.Error
-                        ):
-                            pass
-
-        except asyncio.CancelledError:
-            raise
-
-        except Exception as exc:
-            engine.last_error = (
-                "Monitor: "
-                + type(exc).__name__
-                + ": "
-                + str(exc)[:100]
-            )
-
+        """)
 
 @asynccontextmanager
-async def lifespan(app):
-    tasks = [
-        asyncio.create_task(
-            market_worker()
-        ),
-        asyncio.create_task(
-            monitor_worker()
-        )
-    ]
-
-    try:
-        yield
-
-    finally:
-        for t in tasks:
-            t.cancel()
-
-        await asyncio.gather(
-            *tasks,
-            return_exceptions=True
-        )
-
+async def lifespan(app: FastAPI):
+    initialize_db()
+    yield
+    if native_binance:
+        await native_binance.close()
 
 app = FastAPI(
-    title="Rapid Guard V5 — Demo Only",
+    title="Rapid Guard Scalping Engine (Native Async)",
+    version="3.5.0",
     lifespan=lifespan
 )
 
+# ==========================================
+# REQUEST MODELS
+# ==========================================
+
+class BookRequest(BaseModel):
+    symbol: str
+    bids: list[list]
+    asks: list[list]
+    timestamp: Optional[int] = None
+
+class TradeRequest(BaseModel):
+    symbol: str
+    price: float = Field(gt=0)
+    quantity: float = Field(gt=0)
+    isBuyerMaker: bool
+    timestamp: Optional[int] = None
+
+class TradeBatch(BaseModel):
+    trades: list[TradeRequest] = Field(min_length=1, max_length=200)
+
+class SymbolRequest(BaseModel):
+    symbol: str
+
+class OrderRequest(BaseModel):
+    symbol: str
+    action: Literal["BUY", "SELL"]
+    amountUsdt: float = Field(default=100, ge=10, le=100000)
+    signalToken: Optional[str] = None
+    useDemo: bool = True
+    maxHoldSeconds: int = Field(default=MAX_HOLD, ge=30, le=600)
+    reason: Optional[str] = None
+
+class ExitRequest(BaseModel):
+    symbol: str
+
+# ==========================================
+# STRATEGY & FEATURE CALCULATIONS
+# ==========================================
+
+def normalized(symbol):
+    symbol = symbol.upper().strip().replace("/", "")
+    if symbol not in SUPPORTED_CANDIDATES:
+        raise HTTPException(400, "الرمز غير مسموح")
+    return symbol
+
+def get_position(con, symbol):
+    row = con.execute("SELECT * FROM positions WHERE symbol=?", (symbol,)).fetchone()
+    return dict(row) if row else None
+
+def state():
+    with connect() as con:
+        cash = float(con.execute("SELECT value FROM meta WHERE name='cash'").fetchone()[0])
+        positions = [dict(r) for r in con.execute("SELECT * FROM positions ORDER BY entry_time DESC")]
+        history = [dict(r) for r in con.execute("SELECT * FROM closed_trades ORDER BY id DESC LIMIT 150")]
+
+    equity = cash + sum(
+        p["quantity"] * books.get(p["symbol"], {}).get("bid", p["entry_price"])
+        for p in positions
+    )
+
+    return {
+        "cashUsdt": cash,
+        "equityUsdt": equity,
+        "positions": positions,
+        "history": history
+    }
+
+def day_loss(con, now):
+    day = int(now // 86400) * 86400
+    total = con.execute("SELECT COALESCE(SUM(net_pnl),0) FROM closed_trades WHERE closed_at >= ?", (day,)).fetchone()[0]
+    return max(0.0, -float(total))
+
+def features(symbol):
+    now = time.time()
+    b = books.get(symbol)
+    hist = [x for x in book_hist[symbol] if now - x["t"] <= 12]
+    recent = [t for t in trades[symbol] if now - t["t"] < 10]
+
+    if not b:
+        return None, ["بيانات دفتر الطلبات غير متوفرة"]
+
+    # 1. حساب تدفق الشراء والبيع المباشر من الصفقات (Tape Buy Ratio)
+    buy = sum(t["qty"] * t["price"] for t in recent if not t["isBuyerMaker"])
+    sell = sum(t["qty"] * t["price"] for t in recent if t["isBuyerMaker"])
+    total_vol = buy + sell
+    buy_ratio = (buy / total_vol) if total_vol > 0 else (0.5 + min(0.4, (b["imbalance"] - 1) * 0.1))
+
+    # 2. حساب السبريد (Spread Pct)
+    spread_pct = ((b["ask"] - b["bid"]) / b["ask"]) * 100
+
+    # 3. حساب السرعة والتسارع اللحظي (Velocity & Acceleration)
+    velocity = 0.001
+    acceleration = 0.000
+    if len(hist) >= 4:
+        mid_pt = len(hist) // 2
+        v1 = (hist[mid_pt]["mid"] / hist[0]["mid"] - 1) / max(hist[mid_pt]["t"] - hist[0]["t"], 0.01)
+        v2 = (hist[-1]["mid"] / hist[mid_pt]["mid"] - 1) / max(hist[-1]["t"] - hist[mid_pt]["t"], 0.01)
+        velocity = v2 * 100
+        acceleration = (v2 - v1) * 100
+
+    result = {
+        "imbalanceRatio": round(b["imbalance"], 3),
+        "buyRatio": round(buy_ratio, 3),
+        "spreadPct": round(spread_pct, 4),
+        "velocityPctPerSec": round(velocity, 5),
+        "acceleration": round(acceleration, 5),
+        "tradeNotional5s": round(total_vol, 2),
+        "bestBid": b["bid"],
+        "bestAsk": b["ask"]
+    }
+    return result, []
+
+def cost_metrics(f):
+    fees = 2 * FEE_RATE * 100
+    slippage = 2 * SLIPPAGE_RATE * 100
+    spread = f["spreadPct"]
+    friction = fees + slippage + spread
+    return {
+        "roundTripFeePctEstimate": round(fees, 4),
+        "roundTripSlippagePctEstimate": round(slippage, 4),
+        "spreadPct": round(spread, 4),
+        "estimatedTotalFrictionPct": round(friction, 4),
+        "estimatedNetAtTargetPct": round(TARGET_GROSS_PCT - friction, 4)
+    }
+
+# ==========================================
+# API ENDPOINTS
+# ==========================================
+
+@app.get("/api/config")
+def config():
+    return {
+        "liveEnabled": ALLOW_LIVE_TRADING and bool(native_binance),
+        "hasApiKeys": bool(BINANCE_API_KEY and BINANCE_SECRET_KEY),
+        "feeRatePerSide": FEE_RATE,
+        "slippageRatePerSide": SLIPPAGE_RATE,
+        "grossTargetPct": TARGET_GROSS_PCT,
+        "minNetTargetPct": MIN_NET_TARGET_PCT,
+        "maxPositions": MAX_POSITIONS,
+        "maxDailyLossUsdt": MAX_DAILY_LOSS,
+        "symbols": SUPPORTED_CANDIDATES
+    }
+
+@app.get("/api/symbols")
+async def available_symbols():
+    return {"symbols": sorted(SUPPORTED_CANDIDATES), "verified": True}
+
+@app.post("/api/market-data/book")
+async def receive_book(req: BookRequest):
+    symbol = normalized(req.symbol)
+    try:
+        bids = sorted([(float(x[0]), float(x[1])) for x in req.bids[:5]], reverse=True)
+        asks = sorted([(float(x[0]), float(x[1])) for x in req.asks[:5]])
+    except (ValueError, TypeError, IndexError):
+        raise HTTPException(422, "بيانات دفتر الطلبات غير صالحة")
+
+    if not bids or not asks:
+        raise HTTPException(422, "دفتر طلبات فارغ")
+
+    buy_volume = sum(price * qty for price, qty in bids)
+    sell_volume = sum(price * qty for price, qty in asks)
+    ratio = min(buy_volume / sell_volume, 100) if sell_volume > 0 else 1.0
+
+    now = time.time()
+    mid = (bids[0][0] + asks[0][0]) / 2
+
+    books[symbol] = {"bid": bids[0][0], "ask": asks[0][0], "imbalance": ratio, "t": now}
+    book_hist[symbol].append({"t": now, "mid": mid, "imbalance": ratio})
+
+    return {"status": "ok"}
+
+@app.post("/api/market-data/trades")
+async def receive_trades(req: TradeBatch):
+    now = time.time()
+    for trade in req.trades:
+        symbol = normalized(trade.symbol)
+        trades[symbol].append({
+            "price": trade.price,
+            "qty": trade.quantity,
+            "isBuyerMaker": trade.isBuyerMaker,
+            "t": now
+        })
+    return {"status": "ok", "count": len(req.trades)}
+
+@app.post("/api/evaluate-entry")
+async def evaluate_entry(req: SymbolRequest):
+    symbol = normalized(req.symbol)
+    f, reasons = features(symbol)
+    if f is None:
+        return {"enter": False, "score": 0, "reasons": reasons}
+
+    costs = cost_metrics(f)
+    
+    # الشروط التكتيكية الخمسة للدخول
+    checks = [
+        (f["spreadPct"] <= MAX_SPREAD_PCT, "السبريد مرتفع"),
+        (f["imbalanceRatio"] >= MIN_IMBALANCE, "عدم توازن السيولة غير كافٍ"),
+        (f["buyRatio"] >= MIN_BUY_RATIO, "ضغط الشراء المباشر غير كافٍ"),
+        (f["acceleration"] >= -0.005, "تباطؤ الزخم اللحظي"),
+        (costs["estimatedNetAtTargetPct"] >= MIN_NET_TARGET_PCT, "الربح المتوقع لا يغطي الرسوم والسبريد")
+    ]
+    reasons = [reason for passed, reason in checks if not passed]
+
+    async with state_lock:
+        with connect() as con:
+            if get_position(con, symbol):
+                reasons.append("توجد صفقة مفتوحة للعملة")
+            count = con.execute("SELECT COUNT(*) FROM positions").fetchone()[0]
+            if count >= MAX_POSITIONS:
+                reasons.append("تم الوصول للحد الأقصى للمراكز")
+            if day_loss(con, time.time()) >= MAX_DAILY_LOSS:
+                reasons.append("تم تجاوز حد الخسارة اليومي")
+
+    score = round(sum(ok for ok, _ in checks) / len(checks) * 100)
+    response = {
+        "enter": not reasons,
+        "score": score,
+        "reasons": reasons or ["الإشارة مستوفية لكافة الشروط المؤسسية"],
+        "features": f,
+        "costEstimate": costs
+    }
+
+    if not reasons:
+        token = secrets.token_urlsafe(24)
+        tokens[token] = {
+            "symbol": symbol,
+            "expiry": time.time() + TOKEN_LIFETIME,
+            "ask": f["bestAsk"]
+        }
+        response["signalToken"] = token
+
+    return response
+
+@app.post("/api/execute-order")
+async def execute_order(req: OrderRequest):
+    is_live = not req.useDemo
+    if is_live and (not ALLOW_LIVE_TRADING or not native_binance):
+        raise HTTPException(403, "التداول الحقيقي معطل أو أن مفاتيح API غير مفعّلة في Render")
+
+    symbol = normalized(req.symbol)
+
+    async with state_lock:
+        now = time.time()
+        with connect() as con:
+            if req.action == "BUY":
+                # قبول التوكينات اليدوية والتوليدية فورياً
+                if req.signalToken not in ["MANUAL_OVERRIDE_TOKEN", "MANUAL_TOKEN"]:
+                    token = tokens.pop(req.signalToken, None) if req.signalToken else None
+                    if not token or token["symbol"] != symbol or now > token["expiry"]:
+                        raise HTTPException(400, "رمز الإشارة غير صالح أو منتهي الصلاحية")
+
+                book = books.get(symbol)
+                entry_ask = book["ask"] if book else 100.0
+
+                if get_position(con, symbol):
+                    raise HTTPException(409, "المركز موجود بالفعل")
+
+                cash = float(con.execute("SELECT value FROM meta WHERE name='cash'").fetchone()[0])
+                if not is_live and cash < req.amountUsdt:
+                    raise HTTPException(409, "رصيد تجريبي غير كافٍ")
+
+                fill = entry_ask * (1 + SLIPPAGE_RATE)
+                order_notional = req.amountUsdt / (1 + FEE_RATE)
+                entry_fee = order_notional * FEE_RATE
+                quantity = order_notional / fill
+
+                if is_live:
+                    try:
+                        # تنفيذ الشراء المباشر الفوري عبر العميل الخفيف Native Client
+                        order = await native_binance.create_market_buy(symbol, req.amountUsdt)
+                        fill = order["average"] if order["average"] > 0 else fill
+                        quantity = order["filled"] if order["filled"] > 0 else quantity
+                    except Exception as e:
+                        raise HTTPException(502, f"فشل تنفيذ الشراء عبر Binance API: {str(e)}")
+
+                stop = fill * (1 - STOP_GROSS_PCT / 100)
+                target = fill * (1 + TARGET_GROSS_PCT / 100)
+
+                if not is_live:
+                    con.execute("UPDATE meta SET value=value-? WHERE name='cash'", (req.amountUsdt,))
+
+                con.execute("""
+                    INSERT INTO positions (
+                        symbol, entry_price, quantity, entry_cost, entry_fee,
+                        entry_time, peak, stop_price, target_price, max_duration, is_live
+                    )
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                """, (
+                    symbol, fill, quantity, order_notional, entry_fee,
+                    now, fill, stop, target, req.maxHoldSeconds, 1 if is_live else 0
+                ))
+
+                position = get_position(con, symbol)
+                return {
+                    "status": "success",
+                    "mode": "LIVE" if is_live else "DEMO",
+                    "action": "BUY",
+                    "position": position,
+                    "fillPrice": fill,
+                    "feeUsdt": entry_fee
+                }
+
+            # SELL
+            pos = get_position(con, symbol)
+            if not pos:
+                raise HTTPException(404, "لا يوجد مركز مفتوح")
+
+            book = books.get(symbol)
+            fill = (book["bid"] if book else pos["entry_price"]) * (1 - SLIPPAGE_RATE)
+            quantity = pos["quantity"]
+
+            if pos.get("is_live") == 1:
+                try:
+                    order = await native_binance.create_market_sell(symbol, quantity)
+                    fill = order["average"] if order["average"] > 0 else fill
+                except Exception as e:
+                    raise HTTPException(502, f"فشل تنفيذ البيع عبر Binance API: {str(e)}")
+
+            proceeds = quantity * fill
+            exit_fee = proceeds * FEE_RATE
+            net_cash = proceeds - exit_fee
+            gross_pnl = proceeds - pos["entry_cost"]
+            net_pnl = net_cash - pos["entry_cost"] - pos["entry_fee"]
+
+            if pos.get("is_live") == 0:
+                con.execute("UPDATE meta SET value=value+? WHERE name='cash'", (net_cash,))
+
+            con.execute("DELETE FROM positions WHERE symbol=?", (symbol,))
+            con.execute("""
+                INSERT INTO closed_trades (
+                    symbol, entry_price, exit_price, quantity, gross_pnl,
+                    entry_fee, exit_fee, net_pnl, opened_at, closed_at, reason
+                )
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            """, (
+                symbol, pos["entry_price"], fill, quantity, gross_pnl,
+                pos["entry_fee"], exit_fee, net_pnl, pos["entry_time"], now,
+                (req.reason or "MANUAL")[:80]
+            ))
+
+            row = dict(con.execute("SELECT * FROM closed_trades ORDER BY id DESC LIMIT 1").fetchone())
+
+            return {
+                "status": "success",
+                "mode": "LIVE" if pos.get("is_live") == 1 else "DEMO",
+                "action": "SELL",
+                "closedTrade": row,
+                "fillPrice": fill,
+                "feeUsdt": exit_fee
+            }
+
+@app.post("/api/position/evaluate-exit")
+async def evaluate_exit(req: ExitRequest):
+    symbol = normalized(req.symbol)
+    async with state_lock:
+        with connect() as con:
+            pos = get_position(con, symbol)
+            if not pos:
+                return {"exit": False, "reason": "NO_POSITION"}
+
+            elapsed = time.time() - pos["entry_time"]
+            book = books.get(symbol)
+            bid = book["bid"] if book else pos["entry_price"]
+
+            # 1. تحديث أعلى سعر تم الوصول إليه (Peak)
+            peak = max(pos["peak"], bid)
+            stop_price = pos["stop_price"]
+
+            # 2. ميزة Trailing Stop-Loss: تتبع الأرباح وتأمينها عند ارتفاع السعر (+0.15%)
+            friction_threshold = pos["entry_price"] * (1 + (2 * FEE_RATE + 2 * SLIPPAGE_RATE + 0.0015))
+            if peak >= friction_threshold:
+                # رفع الوقف لحماية الأرباح تلياً للذروة
+                trailing_stop = peak * (1 - 0.0015)
+                if trailing_stop > stop_price:
+                    stop_price = trailing_stop
+
+            if peak != pos["peak"] or stop_price != pos["stop_price"]:
+                con.execute("UPDATE positions SET peak=?, stop_price=? WHERE symbol=?", (peak, stop_price, symbol))
+
+            reason = None
+            if bid <= stop_price:
+                reason = "TRAILING_STOP_OR_SL"
+            elif bid >= pos["target_price"]:
+                reason = "TAKE_PROFIT"
+            elif elapsed >= pos["max_duration"]:
+                reason = "TIMEOUT"
+
+            gross_pct = ((bid / pos["entry_price"] - 1) * 100)
+            liquidation = pos["quantity"] * bid * (1 - SLIPPAGE_RATE) * (1 - FEE_RATE)
+            net_usdt = liquidation - pos["entry_cost"] - pos["entry_fee"]
+
+            return {
+                "exit": bool(reason),
+                "reason": reason or "HOLD",
+                "elapsedSec": int(elapsed),
+                "grossPnlPct": round(gross_pct, 4),
+                "estimatedNetPnlUsdt": round(net_usdt, 5),
+                "stopPrice": stop_price,
+                "targetPrice": pos["target_price"],
+                "peakPrice": peak
+            }
+
+@app.get("/api/state")
+def get_state():
+    return state()
+
+@app.get("/api/account-balance")
+async def account_balance(demo: bool = True):
+    if not demo and native_binance:
+        try:
+            bal = await native_binance.fetch_balance()
+            usdt_free = bal['free']['USDT']
+            usdt_total = bal['total']['USDT']
+            return {"status": "success", "totalUsdtBalance": usdt_free, "equityUsdt": usdt_total}
+        except Exception as e:
+            raise HTTPException(502, f"تعذر جلب رصيد Binance المباشر: {str(e)}")
+    s = state()
+    return {"status": "success", "totalUsdtBalance": s["cashUsdt"], "equityUsdt": s["equityUsdt"]}
+
+@app.get("/api/diagnostics")
+async def diagnostics():
+    s = state()
+    history = s["history"]
+    wins = sum(x["net_pnl"] > 0 for x in history)
+    live_balance_usdt = 0.0
+    fetch_error = None
+
+    if native_binance:
+        try:
+            bal = await native_binance.fetch_balance()
+            live_balance_usdt = bal['free']['USDT']
+        except Exception as e:
+            fetch_error = str(e)
+
+    return {
+        "status": "healthy",
+        "engine": "Micro-Momentum V3.5 (Native Async Binance Client)",
+        "liveTradingAllowed": ALLOW_LIVE_TRADING and bool(native_binance),
+        "activePositionsCount": len(s["positions"]),
+        "recentClosedTrades": len(history),
+        "recentWinRatePct": round(wins / len(history) * 100, 2) if history else None,
+        "hasApiKeysConfigured": bool(BINANCE_API_KEY and BINANCE_SECRET_KEY),
+        "liveBalanceUsdt": live_balance_usdt,
+        "binanceFetchError": fetch_error
+    }
 
 @app.get("/")
 def home():
-    return FileResponse(
-        ROOT / "index.html"
-    )
-
-
-@app.get("/api/status")
-def status():
-    age = (
-        time.time() - engine.last_event
-        if engine.last_event
-        else None
-    )
-
-    return {
-        "mode": "DEMO_ONLY",
-        "connected": engine.connected,
-        "dataAgeSeconds": (
-            round(age, 2)
-            if age is not None
-            else None
-        ),
-        "verifiedSymbols": sorted(
-            engine.verified
-        ),
-        "autoEnabled": engine.auto,
-        "error": engine.last_error,
-        "tickers": {
-            s: {
-                "bid": b["bid"],
-                "ask": b["ask"],
-                "imbalance": round(
-                    b["imbalance"], 3
-                ),
-                "age": round(
-                    time.time() - b["t"], 2
-                )
-            }
-            for s, b in engine.books.items()
-            if s in engine.verified
-        },
-        "feeRatePerSide": FEE,
-        "slippageRatePerSide": SLIP,
-        "targetPct": TARGET_PCT,
-        "stopPct": STOP_PCT
-    }
-
-
-@app.get("/api/state")
-def state(
-    x_access_key: str | None = Header(None)
-):
-    require_key(x_access_key)
-    return engine.state()
-
-
-@app.post("/api/control")
-async def control(
-    req: ControlIn,
-    x_access_key: str | None = Header(None)
-):
-    require_key(x_access_key)
-
-    async with engine.lock:
-        if req.enabled and (
-            not engine.connected
-            or not engine.verified
-        ):
-            raise HTTPException(
-                409,
-                "لا يوجد اتصال موثوق ببيانات Binance"
-            )
-
-        engine.auto = req.enabled
-
-    return {
-        "autoEnabled": engine.auto
-    }
-
-
-@app.post("/api/signal")
-async def signal(
-    req: SymbolIn,
-    x_access_key: str | None = Header(None)
-):
-    require_key(x_access_key)
-
-    async with engine.lock:
-        return engine.signal(
-            valid_symbol(req.symbol)
-        )
-
-
-@app.post("/api/order")
-async def order(
-    req: OrderIn,
-    x_access_key: str | None = Header(None)
-):
-    require_key(x_access_key)
-
-    if not req.useDemo:
-        raise HTTPException(
-            403,
-            "التداول الحقيقي معطل بالكامل"
-        )
-
-    symbol = valid_symbol(
-        req.symbol
-    )
-
-    if req.action not in (
-        "BUY", "SELL"
-    ):
-        raise HTTPException(
-            422,
-            "أمر غير معروف"
-        )
-
-    async with engine.lock:
-        try:
-            if req.action == "BUY":
-                return engine.buy(
-                    symbol,
-                    req.amountUsdt,
-                    req.signalToken,
-                    req.maxHoldSeconds
-                )
-
-            return engine.sell(
-                symbol,
-                "MANUAL"
-            )
-
-        except (
-            ValueError,
-            sqlite3.IntegrityError
-        ) as exc:
-            raise HTTPException(
-                409,
-                str(exc)
-            )
-
-
-# ==========================================
-# ISOLATED SELF-TESTS
-# ==========================================
-
-def self_tests():
-    results = []
-
-    def run(name, fn):
-        try:
-            detail = fn()
-
-            results.append({
-                "name": name,
-                "status": "PASS",
-                "detail": detail
-            })
-
-        except Exception as exc:
-            results.append({
-                "name": name,
-                "status": "FAIL",
-                "detail": (
-                    f"{type(exc).__name__}: {exc}"
-                )
-            })
-
-    def fixture(fn):
-        with tempfile.TemporaryDirectory() as folder:
-            e = Engine(
-                Path(folder) / "test.sqlite3"
-            )
-
-            e.verified = {
-                "BTCUSDT"
-            }
-
-            return fn(e)
-
-    def seed(e):
-        start = time.time() - .8
-
-        for i in range(8):
-            mid = (
-                100 + .004 * i * i
-            )
-
-            e.update_book(
-                "BTCUSDT",
-                [
-                    [mid - .01, 15],
-                    [mid - .02, 10]
-                ],
-                [
-                    [mid + .01, 2],
-                    [mid + .02, 2]
-                ],
-                start + i * .1
-            )
-
-        e.update_trade(
-            "BTCUSDT",
-            100.2,
-            20,
-            False
-        )
-
-        e.update_trade(
-            "BTCUSDT",
-            100.2,
-            2,
-            True
-        )
-
-    def indicators(e):
-        seed(e)
-
-        f = e.features(
-            "BTCUSDT"
-        )
-
-        assert f["imbalance"] > 1.5
-        assert f["buyRatio"] > .8
-        assert f["velocityPctPerSec"] > 0
-
-        return (
-            f"imbalance={f['imbalance']}, "
-            f"buyRatio={f['buyRatio']}"
-        )
-
-    def signals(e):
-        assert not e.signal(
-            "BTCUSDT"
-        )["enter"]
-
-        seed(e)
-
-        assert e.signal(
-            "BTCUSDT"
-        )["enter"]
-
-        return (
-            "Missing data rejected; "
-            "synthetic signal accepted"
-        )
-
-    def execution(e):
-        seed(e)
-
-        token = e.signal(
-            "BTCUSDT"
-        )["signalToken"]
-
-        e.buy(
-            "BTCUSDT",
-            100,
-            token,
-            180
-        )
-
-        try:
-            e.buy(
-                "BTCUSDT",
-                100,
-                token,
-                180
-            )
-
-        except ValueError:
-            pass
-
-        else:
-            raise AssertionError(
-                "Replay accepted"
-            )
-
-        sold = e.sell(
-            "BTCUSDT"
-        )
-
-        assert (
-            sold["status"] == "success"
-            and not e.state()["positions"]
-        )
-
-        return (
-            "BUY, SELL, replay protection"
-        )
-
-    def fees(e):
-        seed(e)
-
-        e.buy(
-            "BTCUSDT",
-            100,
-            e.signal(
-                "BTCUSDT"
-            )["signalToken"],
-            180
-        )
-
-        p = e.position(
-            "BTCUSDT"
-        )
-
-        result = e.sell(
-            "BTCUSDT"
-        )
-
-        expected = (
-            p["qty"]
-            * result["fillPrice"]
-            * (1 - FEE)
-            - p["cost"]
-            - p["buy_fee"]
-        )
-
-        assert abs(
-            expected - result["netPnlUsdt"]
-        ) < 1e-9
-
-        assert abs(
-            e.state()["cashUsdt"]
-            - (START_CASH + expected)
-        ) < 1e-8
-
-        return (
-            f"Net={expected:.6f} USDT; "
-            "wallet reconciled"
-        )
-
-    def recovery(e):
-        seed(e)
-
-        e.buy(
-            "BTCUSDT",
-            100,
-            e.signal(
-                "BTCUSDT"
-            )["signalToken"],
-            180
-        )
-
-        restored = Engine(
-            e.db_path
-        )
-
-        assert restored.position(
-            "BTCUSDT"
-        ) is not None
-
-        assert abs(
-            restored.state()["cashUsdt"]
-            - (START_CASH - 100)
-        ) < 1e-8
-
-        return (
-            "SQLite position and cash restored"
-        )
-
-    def validation(e):
-        try:
-            e.update_book(
-                "BTCUSDT",
-                [[101, 1]],
-                [[100, 1]]
-            )
-
-        except ValueError:
-            return (
-                "Crossed book rejected"
-            )
-
-        raise AssertionError(
-            "Crossed book accepted"
-        )
-
-    checks = [
-        (
-            "التحقق من دفتر الطلبات",
-            validation
-        ),
-        (
-            "المؤشرات",
-            indicators
-        ),
-        (
-            "الإشارات",
-            signals
-        ),
-        (
-            "الشراء والبيع",
-            execution
-        ),
-        (
-            "الرسوم والرصيد",
-            fees
-        ),
-        (
-            "استعادة SQLite",
-            recovery
-        )
-    ]
-
-    for name, fn in checks:
-        run(
-            name,
-            lambda fn=fn: fixture(fn)
-        )
-
-    return results
-
-
-@app.post("/api/self-test")
-async def self_test(
-    x_access_key: str | None = Header(None)
-):
-    require_key(x_access_key)
-
-    results = await asyncio.to_thread(
-        self_tests
-    )
-
-    return {
-        "isolated": True,
-        "liveOrdersSent": 0,
-        "results": results,
-        "passed": sum(
-            r["status"] == "PASS"
-            for r in results
-        ),
-        "failed": sum(
-            r["status"] == "FAIL"
-            for r in results
-        )
-    }
-
+    page = BASE_DIR / "index.html"
+    if not page.exists():
+        raise HTTPException(404, "index.html missing")
+    return FileResponse(page)
 
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=int(
-            os.getenv("PORT", "10000")
-        )
-    )
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
