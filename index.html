@@ -1,1059 +1,399 @@
-<!doctype html>
-<html lang="ar" dir="rtl">
-
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-
-<title>الحارس السريع V5 — التداول التجريبي</title>
-
-<style>
-:root {
-    color-scheme: dark;
-    --bg: #0b0e14;
-    --panel: #151b25;
-    --line: #293548;
-    --green: #34d399;
-    --red: #fb7185;
-    --muted: #a2afc1;
-}
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    background: var(--bg);
-    color: #e5eaf1;
-    font-family: system-ui, Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
-    line-height: 1.55;
-}
-
-.wrap {
-    max-width: 1280px;
-    margin: auto;
-}
-
-.panel {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 18px;
-    margin: 0 0 16px;
-}
-
-h1 {
-    font-size: 23px;
-    margin: 0;
-    color: var(--green);
-}
-
-h2 {
-    font-size: 16px;
-    margin: 0 0 12px;
-}
-
-p {
-    margin: 5px 0;
-    color: var(--muted);
-}
-
-.small {
-    font-size: 12px;
-}
-
-.top,
-.flex {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.top {
-    justify-content: space-between;
-}
-
-.grid {
-    display: grid;
-    grid-template-columns:
-        repeat(auto-fit, minmax(190px, 1fr));
-    gap: 12px;
-}
-
-.metric {
-    background: #0e141e;
-    border: 1px solid var(--line);
-    padding: 14px;
-    border-radius: 12px;
-}
-
-.metric strong {
-    display: block;
-    font-size: 20px;
-    direction: ltr;
-    text-align: right;
-}
-
-button,
-input,
-select {
-    font: inherit;
-    border-radius: 9px;
-    border: 1px solid #40516a;
-    padding: 9px 12px;
-    background: #0b111b;
-    color: white;
-}
-
-button {
-    cursor: pointer;
-}
-
-button:hover {
-    border-color: var(--green);
-}
-
-button:disabled {
-    opacity: .45;
-    cursor: not-allowed;
-}
-
-.primary {
-    background: #059669;
-    color: white;
-    border-color: #059669;
-}
-
-.danger {
-    background: #7f1d1d;
-    border-color: #9f1239;
-}
-
-.good {
-    color: var(--green);
-}
-
-.bad {
-    color: var(--red);
-}
-
-.warn {
-    color: #fbbf24;
-}
-
-input[type=password] {
-    min-width: 220px;
-}
-
-input[type=number] {
-    width: 115px;
-}
-
-select {
-    min-width: 125px;
-}
-
-.tablebox {
-    overflow: auto;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    white-space: nowrap;
-}
-
-td,
-th {
-    padding: 10px;
-    text-align: right;
-    border-bottom: 1px solid var(--line);
-    font-size: 12px;
-}
-
-th {
-    color: var(--muted);
-}
-
-.logs {
-    height: 150px;
-    overflow: auto;
-    background: #0b111b;
-    padding: 12px;
-    border-radius: 10px;
-    font: 12px/1.8 ui-monospace, monospace;
-}
-
-.ticker {
-    background: #0d1420;
-    border: 1px solid var(--line);
-    padding: 10px;
-    border-radius: 11px;
-    font-size: 12px;
-}
-
-.ticker b {
-    color: var(--green);
-}
-
-#testResults > div {
-    padding: 6px;
-    border-bottom: 1px solid var(--line);
-}
-
-.status {
-    font-weight: bold;
-}
-</style>
-</head>
-
-<body>
-
-<div class="wrap">
-
-<header class="panel top">
-
-    <div>
-        <h1>⚡ منصة الحارس السريع V5</h1>
-        <p>
-            Binance Spot — بيانات حية من Python —
-            تنفيذ تجريبي فقط
-        </p>
-    </div>
-
-    <div>
-        <span class="small">حالة الاتصال:</span>
-
-        <span id="connection" class="status warn">
-            جارٍ الفحص
-        </span>
-
-        <div class="small" id="lastEvent">—</div>
-    </div>
-
-</header>
-
-<section class="panel">
-
-    <h2>🔐 التحكم الآمن</h2>
-
-    <p class="small">
-        أدخل APP_ACCESS_KEY الموجود في إعدادات السيرفر.
-        لا تستخدم مفاتيح Binance هنا.
-    </p>
-
-    <div class="flex">
-
-        <input
-            id="key"
-            type="password"
-            autocomplete="off"
-            placeholder="مفتاح وصول المنصة"
-        >
-
-        <button
-            class="primary"
-            onclick="loadState()"
-        >
-            تحديث الحساب
-        </button>
-
-        <button
-            id="autoOn"
-            class="primary"
-            onclick="setAuto(true)"
-        >
-            تشغيل البوت التجريبي
-        </button>
-
-        <button
-            id="autoOff"
-            class="danger"
-            onclick="setAuto(false)"
-        >
-            إيقاف فتح صفقات جديدة
-        </button>
-
-        <button onclick="runTests()">
-            🧪 فحص شامل معزول
-        </button>
-
-    </div>
-
-    <p id="autoStatus" class="warn small">
-        الفتح الآلي متوقف افتراضياً.
-        مراقبة إغلاق المراكز الموجودة تستمر داخل Python.
-    </p>
-
-</section>
-
-<section class="grid">
-
-    <div class="metric">
-        <span class="small">
-            الرصيد النقدي التجريبي
-        </span>
-        <strong id="cash">—</strong>
-    </div>
-
-    <div class="metric">
-        <span class="small">
-            القيمة التقديرية للحساب
-        </span>
-        <strong id="equity">—</strong>
-    </div>
-
-    <div class="metric">
-        <span class="small">
-            المراكز المفتوحة
-        </span>
-        <strong id="positionsCount">—</strong>
-    </div>
-
-    <div class="metric">
-        <span class="small">
-            صافي آخر 100 صفقة
-        </span>
-        <strong id="netPnl">—</strong>
-    </div>
-
-</section>
-
-<section class="panel">
-
-    <h2>📊 الأسعار الحية ودفتر الطلبات</h2>
-
-    <p class="small">
-        الأسعار تأتي من بث Binance العام إلى Python،
-        ولا تحتاج إلى مفاتيح API.
-    </p>
-
-    <div id="tickers" class="grid"></div>
-
-</section>
-
-<section class="panel">
-
-    <h2>
-        ✋ صفقة تجريبية يدوية مشروطة بإشارة صحيحة
-    </h2>
-
-    <div class="flex">
-
-        <select id="symbol">
-            <option value="">
-                انتظر التحقق من الأزواج
-            </option>
-        </select>
-
-        <label>
-            ميزانية USDT
-            <input
-                id="budget"
-                type="number"
-                min="10"
-                max="100000"
-                value="100"
-            >
-        </label>
-
-        <label>
-            مدة بالثواني
-            <input
-                id="hold"
-                type="number"
-                min="30"
-                max="600"
-                value="180"
-            >
-        </label>
-
-        <button
-            class="primary"
-            onclick="manualBuy()"
-        >
-            تقييم ثم شراء Demo
-        </button>
-
-    </div>
-
-    <p class="small">
-        إذا لم تستوفِ العملة شروط الدخول فلن تُفتح الصفقة.
-        الإغلاق اليدوي متاح من جدول المراكز.
-    </p>
-
-</section>
-
-<section class="panel">
-
-    <h2>📌 المراكز المفتوحة</h2>
-
-    <div class="tablebox">
-        <table>
-            <thead>
-                <tr>
-                    <th>العملة</th>
-                    <th>سعر الدخول</th>
-                    <th>الكمية</th>
-                    <th>التكلفة مع العمولة</th>
-                    <th>الوقف</th>
-                    <th>الهدف</th>
-                    <th>المدة</th>
-                    <th>إغلاق</th>
-                </tr>
-            </thead>
-
-            <tbody id="openRows">
-                <tr>
-                    <td colspan="8">
-                        لا توجد بيانات
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-</section>
-
-<section class="panel">
-
-    <h2>
-        📜 الصفقات المغلقة
-        (الربح الصافي بعد الرسوم)
-    </h2>
-
-    <div class="tablebox">
-        <table>
-            <thead>
-                <tr>
-                    <th>العملة</th>
-                    <th>الدخول</th>
-                    <th>الخروج</th>
-                    <th>رسوم الشراء</th>
-                    <th>رسوم البيع</th>
-                    <th>الصافي USDT</th>
-                    <th>المدة</th>
-                    <th>السبب</th>
-                </tr>
-            </thead>
-
-            <tbody id="historyRows">
-                <tr>
-                    <td colspan="8">
-                        لا توجد بيانات
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-</section>
-
-<section class="panel">
-
-    <h2>🧪 نتائج الفحص الشامل</h2>
-
-    <div id="testResults" class="small">
-        لم يبدأ الفحص بعد.
-    </div>
-
-</section>
-
-<section class="panel">
-
-    <h2>🖥️ سجل الأحداث</h2>
-
-    <div id="logs" class="logs"></div>
-
-</section>
-
-<p class="small">
-    تنبيه: الأسعار والعمولات والانزلاق في التنفيذ التجريبي
-    تقديرية؛ لا تمثل تأكيداً لتنفيذ أو ربح فعلي في Binance.
-    قد تكون بيانات السوق غير متاحة بحسب الشبكة أو المنطقة.
-</p>
-
-</div>
-
-<script>
-'use strict';
-
-const $ = id => document.getElementById(id);
-
-const num = (v, n = 4) =>
-    Number(v || 0).toFixed(n);
-
-let lastStatus = null;
-let stateBusy = false;
-let statusBusy = false;
-
-function log(message, isError = false) {
-    const div = document.createElement('div');
-
-    div.className = isError ? 'bad' : 'good';
-
-    div.textContent =
-        `[${new Date().toLocaleTimeString('ar-SA')}] ${message}`;
-
-    $('logs').prepend(div);
-
-    while ($('logs').children.length > 90) {
-        $('logs').lastChild.remove();
-    }
-}
-
-async function api(
-    url,
-    data,
-    authenticated = true
-) {
-    const controller = new AbortController();
-
-    const timer = setTimeout(
-        () => controller.abort(),
-        10000
-    );
-
-    try {
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-
-        if (authenticated) {
-            const key = $('key').value.trim();
-
-            if (!key) {
-                throw Error(
-                    'أدخل APP_ACCESS_KEY أولاً'
-                );
-            }
-
-            headers['X-Access-Key'] = key;
-        }
-
-        const res = await fetch(url, {
-            method:
-                data === undefined
-                    ? 'GET'
-                    : 'POST',
-
-            headers,
-
-            ...(
-                data === undefined
-                    ? {}
-                    : {
-                        body: JSON.stringify(data)
-                    }
-            ),
-
-            signal: controller.signal
-        });
-
-        const body = await res.json();
-
-        if (!res.ok) {
-            throw Error(
-                typeof body.detail === 'string'
-                    ? body.detail
-                    : `HTTP ${res.status}`
-            );
-        }
-
-        return body;
-
-    } finally {
-        clearTimeout(timer);
-    }
-}
-
-function cell(
-    row,
-    value,
-    cls = ''
-) {
-    const td = document.createElement('td');
-
-    td.textContent = String(value);
-
-    if (cls) {
-        td.className = cls;
-    }
-
-    row.appendChild(td);
-}
-
-async function refreshStatus() {
-    if (statusBusy) return;
-
-    statusBusy = true;
-
-    try {
-        const s = await api(
-            '/api/status',
-            undefined,
-            false
-        );
-
-        lastStatus = s;
-
-        const healthy =
-            s.connected
-            && s.dataAgeSeconds !== null
-            && s.dataAgeSeconds < 3;
-
-        $('connection').textContent = healthy
-            ? 'متصل — بيانات حديثة'
-            : 'غير متصل أو بيانات قديمة';
-
-        $('connection').className =
-            'status ' + (
-                healthy ? 'good' : 'bad'
-            );
-
-        $('lastEvent').textContent =
-            `عمر البيانات: ${s.dataAgeSeconds ?? '—'} ث | ` +
-            `الأزواج المتحققة: ${s.verifiedSymbols.length}`;
-
-        $('autoStatus').textContent =
-            s.autoEnabled
-                ? 'الفتح الآلي التجريبي يعمل داخل Python'
-                : 'الفتح الآلي متوقف؛ متابعة المراكز لا تزال تعمل';
-
-        $('autoStatus').className =
-            s.autoEnabled
-                ? 'good small'
-                : 'warn small';
-
-        if (s.error && !healthy) {
-            $('lastEvent').textContent +=
-                ` | ${s.error}`;
-        }
-
-        const current = $('symbol').value;
-
-        const existing = Array.from(
-            $('symbol').options
+import os
+import time
+import math
+import hmac
+import hashlib
+import secrets
+import sqlite3
+import asyncio
+from pathlib import Path
+from collections import defaultdict, deque
+from contextlib import asynccontextmanager
+from typing import Optional, Literal
+
+import httpx
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
+
+# ==========================================
+# CONFIGURATION & ENV KEYS
+# ==========================================
+
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = Path(os.getenv("DATABASE_PATH", str(BASE_DIR / "scalper.sqlite3")))
+
+BINANCE_API_KEY = os.getenv("BINANCE_API_KEY", "").strip()
+BINANCE_SECRET_KEY = os.getenv("BINANCE_SECRET_KEY", "").strip()
+ALLOW_LIVE_TRADING = os.getenv("ALLOW_LIVE_TRADING", "false").lower() == "true"
+
+DEMO_START_BALANCE = float(os.getenv("DEMO_START_BALANCE", "10000"))
+FEE_RATE = float(os.getenv("DEMO_FEE_RATE", "0.001"))
+SLIPPAGE_RATE = float(os.getenv("DEMO_SLIPPAGE_RATE", "0.0002"))
+MIN_NET_TARGET_PCT = float(os.getenv("MIN_NET_TARGET_PCT", "0.10"))
+TARGET_GROSS_PCT = float(os.getenv("TARGET_GROSS_PCT", "0.45"))
+STOP_GROSS_PCT = float(os.getenv("STOP_GROSS_PCT", "0.30"))
+MAX_SPREAD_PCT = float(os.getenv("MAX_SPREAD_PCT", "0.10"))
+MAX_POSITIONS = int(os.getenv("MAX_POSITIONS", "3"))
+MAX_DAILY_LOSS = float(os.getenv("MAX_DAILY_LOSS_USDT", "25"))
+MIN_BUY_RATIO = float(os.getenv("MIN_BUY_RATIO", "0.55"))
+MIN_IMBALANCE = float(os.getenv("MIN_IMBALANCE", "1.3"))
+MAX_HOLD = int(os.getenv("DEFAULT_MAX_HOLD_SECONDS", "180"))
+
+# مرونة التوكين للتنفيذ الفوري دون تأخير شبكي
+TOKEN_LIFETIME = 6.0
+MARKET_MAX_AGE = 10.0
+
+SUPPORTED_CANDIDATES = [
+    "BTCUSDT", "ETHUSDT", "SOLUSDT",
+    "XRPUSDT", "BNBUSDT", "DOGEUSDT",
+    "ADAUSDT", "LINKUSDT", "AVAXUSDT",
+    "LTCUSDT", "DOTUSDT", "TRXUSDT",
+    "SUIUSDT", "NEARUSDT", "APTUSDT",
+    "ATOMUSDT", "UNIUSDT", "ETCUSDT",
+    "BCHUSDT", "XLMUSDT", "FILUSDT",
+    "ARBUSDT", "OPUSDT", "AAVEUSDT",
+    "INJUSDT", "PEPEUSDT", "SHIBUSDT",
+    "ICPUSDT", "ALGOUSDT", "HBARUSDT"
+]
+
+# ==========================================
+# FAST NATIVE BINANCE SPOT CLIENT (REPLACING CCXT)
+# ==========================================
+
+class NativeBinanceClient:
+    """بديل خفيف ومباشر فائق السرعة لمكتبة CCXT بدون أي تعقيدات"""
+    def __init__(self, api_key: str, secret_key: str):
+        self.api_key = api_key
+        self.secret_key = secret_key
+        self.base_url = "https://api.binance.com"
+        self.client = httpx.AsyncClient(
+            headers={"X-MBX-APIKEY": self.api_key},
+            timeout=5.0
         )
-            .map(x => x.value)
-            .filter(Boolean);
 
-        if (
-            JSON.stringify(existing) !==
-            JSON.stringify(s.verifiedSymbols)
-        ) {
-            $('symbol').textContent = '';
+    def _sign(self, params: dict) -> dict:
+        params["timestamp"] = int(time.time() * 1000)
+        query = "&".join([f"{k}={v}" for k, v in sorted(params.items())])
+        signature = hmac.new(
+            self.secret_key.encode('utf-8'),
+            query.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        params["signature"] = signature
+        return params
 
-            for (const symbol of s.verifiedSymbols) {
-                const opt = document.createElement(
-                    'option'
-                );
+    async def fetch_balance(self) -> dict:
+        params = self._sign({})
+        res = await self.client.get(f"{self.base_url}/api/v3/account", params=params)
+        res.raise_for_status()
+        data = res.json()
+        usdt_free = 0.0
+        usdt_total = 0.0
+        for item in data.get("balances", []):
+            if item["asset"] == "USDT":
+                usdt_free = float(item["free"])
+                usdt_total = usdt_free + float(item["locked"])
+                break
+        return {"free": {"USDT": usdt_free}, "total": {"USDT": usdt_total}}
 
-                opt.value = symbol;
-                opt.textContent = symbol;
+    async def create_market_buy(self, symbol: str, quote_quantity: float) -> dict:
+        params = self._sign({
+            "symbol": symbol.upper(),
+            "side": "BUY",
+            "type": "MARKET",
+            "quoteOrderQty": round(quote_quantity, 2)
+        })
+        res = await self.client.post(f"{self.base_url}/api/v3/order", params=params)
+        res.raise_for_status()
+        data = res.json()
+        executed_qty = float(data.get("executedQty", 0.0))
+        cummulative_quote = float(data.get("cummulativeQuoteQty", quote_quantity))
+        avg_price = cummulative_quote / executed_qty if executed_qty > 0 else 0.0
+        return {"average": avg_price, "filled": executed_qty, "raw": data}
 
-                $('symbol').appendChild(opt);
-            }
+    async def create_market_sell(self, symbol: str, quantity: float) -> dict:
+        params = self._sign({
+            "symbol": symbol.upper(),
+            "side": "SELL",
+            "type": "MARKET",
+            "quantity": f"{quantity:.6f}"
+        })
+        res = await self.client.post(f"{self.base_url}/api/v3/order", params=params)
+        res.raise_for_status()
+        data = res.json()
+        executed_qty = float(data.get("executedQty", quantity))
+        cummulative_quote = float(data.get("cummulativeQuoteQty", 0.0))
+        avg_price = cummulative_quote / executed_qty if executed_qty > 0 else 0.0
+        return {"average": avg_price, "filled": executed_qty, "raw": data}
 
-            if (
-                s.verifiedSymbols.includes(current)
-            ) {
-                $('symbol').value = current;
-            }
-        }
+    async def close(self):
+        await self.client.aclose()
 
-        const box = $('tickers');
-        box.textContent = '';
+native_binance = None
+if BINANCE_API_KEY and BINANCE_SECRET_KEY:
+    native_binance = NativeBinanceClient(BINANCE_API_KEY, BINANCE_SECRET_KEY)
 
-        for (const symbol of s.verifiedSymbols) {
-            const b = s.tickers[symbol];
+# ==========================================
+# MARKET STATE & DATABASE
+# ==========================================
 
-            const item = document.createElement(
-                'div'
-            );
+books = {}
+book_hist = defaultdict(lambda: deque(maxlen=40))
+trades = defaultdict(lambda: deque(maxlen=500))
+tokens = {}
+state_lock = asyncio.Lock()
 
-            item.className = 'ticker';
+def connect():
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-            const title = document.createElement(
-                'b'
-            );
+def initialize_db():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with connect() as con:
+        con.execute("PRAGMA journal_mode=WAL")
+        con.execute("CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY, value REAL NOT NULL)")
+        con.execute("INSERT OR IGNORE INTO meta(name,value) VALUES ('cash',?)", (DEMO_START_BALANCE,))
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS positions (
+                symbol TEXT PRIMARY KEY,
+                entry_price REAL NOT NULL,
+                quantity REAL NOT NULL,
+                entry_cost REAL NOT NULL,
+                entry_fee REAL NOT NULL,
+                entry_time REAL NOT NULL,
+                peak REAL NOT NULL,
+                stop_price REAL NOT NULL,
+                target_price REAL NOT NULL,
+                max_duration INTEGER NOT NULL,
+                is_live INTEGER DEFAULT 0
+            )
+        """)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS closed_trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT NOT NULL,
+                entry_price REAL NOT NULL,
+                exit_price REAL NOT NULL,
+                quantity REAL NOT NULL,
+                gross_pnl REAL NOT NULL,
+                entry_fee REAL NOT NULL,
+                exit_fee REAL NOT NULL,
+                net_pnl REAL NOT NULL,
+                opened_at REAL NOT NULL,
+                closed_at REAL NOT NULL,
+                reason TEXT NOT NULL
+            )
+        """)
 
-            title.textContent = symbol;
-            item.appendChild(title);
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    initialize_db()
+    yield
+    if native_binance:
+        await native_binance.close()
 
-            const info = document.createElement(
-                'div'
-            );
+app = FastAPI(
+    title="Rapid Guard Scalping Engine (Native Async)",
+    version="3.5.0",
+    lifespan=lifespan
+)
 
-            info.textContent = b
-                ? `شراء ${num(b.bid, 6)} | ` +
-                  `بيع ${num(b.ask, 6)} | ` +
-                  `عمق ${num(b.imbalance, 2)} | ` +
-                  `${b.age}ث`
-                : 'بانتظار بيانات السوق';
+# ==========================================
+# REQUEST MODELS
+# ==========================================
 
-            item.appendChild(info);
-            box.appendChild(item);
-        }
+class BookRequest(BaseModel):
+    symbol: str
+    bids: list[list]
+    asks: list[list]
+    timestamp: Optional[int] = None
 
-    } catch (e) {
-        $('connection').textContent =
-            'فشل الاتصال بالسيرفر';
+class TradeRequest(BaseModel):
+    symbol: str
+    price: float = Field(gt=0)
+    quantity: float = Field(gt=0)
+    isBuyerMaker: bool
+    timestamp: Optional[int] = None
 
-        $('connection').className =
-            'status bad';
+class TradeBatch(BaseModel):
+    trades: list[TradeRequest] = Field(min_length=1, max_length=200)
 
-        log(e.message, true);
+class SymbolRequest(BaseModel):
+    symbol: str
 
-    } finally {
-        statusBusy = false;
-    }
-}
+class OrderRequest(BaseModel):
+    symbol: str
+    action: Literal["BUY", "SELL"]
+    amountUsdt: float = Field(default=100, ge=10, le=100000)
+    signalToken: Optional[str] = None
+    useDemo: bool = True
+    maxHoldSeconds: int = Field(default=MAX_HOLD, ge=30, le=600)
+    reason: Optional[str] = None
 
-async function loadState() {
-    if (stateBusy) return;
+class ExitRequest(BaseModel):
+    symbol: str
 
-    stateBusy = true;
+# ==========================================
+# STRATEGY & FEATURE CALCULATIONS
+# ==========================================
 
-    try {
-        const s = await api(
-            '/api/state'
-        );
+def normalized(symbol):
+    symbol = symbol.upper().strip().replace("/", "")
+    if symbol not in SUPPORTED_CANDIDATES:
+        raise HTTPException(400, "الرمز غير مسموح")
+    return symbol
 
-        $('cash').textContent =
-            num(s.cashUsdt, 2) + ' USDT';
+def get_position(con, symbol):
+    row = con.execute("SELECT * FROM positions WHERE symbol=?", (symbol,)).fetchone()
+    return dict(row) if row else None
 
-        $('equity').textContent =
-            num(
-                s.estimatedEquityUsdt,
-                2
-            ) + ' USDT';
+def state():
+    with connect() as con:
+        cash = float(con.execute("SELECT value FROM meta WHERE name='cash'").fetchone()[0])
+        positions = [dict(r) for r in con.execute("SELECT * FROM positions ORDER BY entry_time DESC")]
+        history = [dict(r) for r in con.execute("SELECT * FROM closed_trades ORDER BY id DESC LIMIT 150")]
 
-        $('positionsCount').textContent =
-            s.positions.length;
+    equity = cash + sum(
+        p["quantity"] * books.get(p["symbol"], {}).get("bid", p["entry_price"])
+        for p in positions
+    )
 
-        const total = s.history.reduce(
-            (a, t) => a + t.net,
-            0
-        );
-
-        $('netPnl').textContent =
-            num(total, 3) + ' USDT';
-
-        $('netPnl').className =
-            total >= 0 ? 'good' : 'bad';
-
-        const active = $('openRows');
-        active.textContent = '';
-
-        for (const p of s.positions) {
-            const tr = document.createElement(
-                'tr'
-            );
-
-            [
-                p.symbol,
-                num(p.entry, 6),
-                num(p.qty, 7),
-                num(p.cost + p.buy_fee, 3),
-                num(p.stop, 6),
-                num(p.target, 6),
-                `${
-                    Math.floor(
-                        Date.now() / 1000
-                        - p.opened
-                    )
-                }/${p.hold}ث`
-            ].forEach(
-                v => cell(tr, v)
-            );
-
-            const td = document.createElement(
-                'td'
-            );
-
-            const button = document.createElement(
-                'button'
-            );
-
-            button.className = 'danger';
-            button.textContent = 'إغلاق Demo';
-
-            button.onclick = () =>
-                manualSell(p.symbol);
-
-            td.appendChild(button);
-            tr.appendChild(td);
-            active.appendChild(tr);
-        }
-
-        if (!s.positions.length) {
-            const tr = document.createElement(
-                'tr'
-            );
-
-            cell(
-                tr,
-                'لا توجد مراكز مفتوحة'
-            );
-
-            active.appendChild(tr);
-        }
-
-        const history = $('historyRows');
-        history.textContent = '';
-
-        for (const t of s.history) {
-            const tr = document.createElement(
-                'tr'
-            );
-
-            [
-                t.symbol,
-                num(t.entry, 6),
-                num(t.exit, 6),
-                num(t.buy_fee, 4),
-                num(t.sell_fee, 4),
-                num(t.net, 4),
-                `${
-                    Math.round(
-                        t.closed - t.opened
-                    )
-                }ث`,
-                t.reason
-            ].forEach(
-                (v, i) => cell(
-                    tr,
-                    v,
-                    i === 5
-                        ? (
-                            t.net >= 0
-                                ? 'good'
-                                : 'bad'
-                        )
-                        : ''
-                )
-            );
-
-            history.appendChild(tr);
-        }
-
-        if (!s.history.length) {
-            const tr = document.createElement(
-                'tr'
-            );
-
-            cell(
-                tr,
-                'لا توجد صفقات مغلقة'
-            );
-
-            history.appendChild(tr);
-        }
-
-    } catch (e) {
-        log(
-            'تحديث الحساب: ' + e.message,
-            true
-        );
-
-    } finally {
-        stateBusy = false;
-    }
-}
-
-async function setAuto(enabled) {
-    try {
-        const r = await api(
-            '/api/control',
-            { enabled }
-        );
-
-        log(
-            r.autoEnabled
-                ? 'تم تشغيل البوت التجريبي'
-                : 'تم إيقاف فتح الصفقات الجديدة'
-        );
-
-        await refreshStatus();
-
-    } catch (e) {
-        log(
-            'التحكم: ' + e.message,
-            true
-        );
-    }
-}
-
-async function manualBuy() {
-    const symbol = $('symbol').value;
-
-    const amountUsdt = Number(
-        $('budget').value
-    );
-
-    const maxHoldSeconds = Number(
-        $('hold').value
-    );
-
-    if (
-        !symbol
-        || !Number.isFinite(amountUsdt)
-        || amountUsdt < 10
-        || amountUsdt > 100000
-        || !Number.isInteger(maxHoldSeconds)
-        || maxHoldSeconds < 30
-        || maxHoldSeconds > 600
-    ) {
-        log(
-            'عملة أو ميزانية أو مدة غير صالحة',
-            true
-        );
-        return;
+    return {
+        "cashUsdt": cash,
+        "equityUsdt": equity,
+        "positions": positions,
+        "history": history
     }
 
-    try {
-        const s = await api(
-            '/api/signal',
-            { symbol }
-        );
+def day_loss(con, now):
+    day = int(now // 86400) * 86400
+    total = con.execute("SELECT COALESCE(SUM(net_pnl),0) FROM closed_trades WHERE closed_at >= ?", (day,)).fetchone()[0]
+    return max(0.0, -float(total))
 
-        if (!s.enter) {
-            log(
-                `رفض دخول ${symbol}: ` +
-                s.reasons.join('، '),
-                true
-            );
-            return;
-        }
+def features(symbol):
+    now = time.time()
+    b = books.get(symbol)
+    hist = [x for x in book_hist[symbol] if now - x["t"] <= 12]
+    recent = [t for t in trades[symbol] if now - t["t"] < 10]
 
-        const r = await api(
-            '/api/order',
-            {
-                symbol,
-                action: 'BUY',
-                amountUsdt,
-                maxHoldSeconds,
-                signalToken: s.signalToken,
-                useDemo: true
-            }
-        );
+    if not b:
+        return None, ["بيانات دفتر الطلبات غير متوفرة"]
 
-        log(
-            `شراء تجريبي مؤكد ${symbol} ` +
-            `بسعر ${num(r.fillPrice, 6)} ` +
-            `ورسوم ${num(r.feeUsdt, 4)}`
-        );
+    # 1. حساب تدفق الشراء والبيع المباشر من الصفقات (Tape Buy Ratio)
+    buy = sum(t["qty"] * t["price"] for t in recent if not t["isBuyerMaker"])
+    sell = sum(t["qty"] * t["price"] for t in recent if t["isBuyerMaker"])
+    total_vol = buy + sell
+    buy_ratio = (buy / total_vol) if total_vol > 0 else (0.5 + min(0.4, (b["imbalance"] - 1) * 0.1))
 
-        await loadState();
+    # 2. حساب السبريد (Spread Pct)
+    spread_pct = ((b["ask"] - b["bid"]) / b["ask"]) * 100
 
-    } catch (e) {
-        log(
-            'فشل الشراء: ' + e.message,
-            true
-        );
+    # 3. حساب السرعة والتسارع اللحظي (Velocity & Acceleration)
+    velocity = 0.001
+    acceleration = 0.000
+    if len(hist) >= 4:
+        mid_pt = len(hist) // 2
+        v1 = (hist[mid_pt]["mid"] / hist[0]["mid"] - 1) / max(hist[mid_pt]["t"] - hist[0]["t"], 0.01)
+        v2 = (hist[-1]["mid"] / hist[mid_pt]["mid"] - 1) / max(hist[-1]["t"] - hist[mid_pt]["t"], 0.01)
+        velocity = v2 * 100
+        acceleration = (v2 - v1) * 100
+
+    result = {
+        "imbalanceRatio": round(b["imbalance"], 3),
+        "buyRatio": round(buy_ratio, 3),
+        "spreadPct": round(spread_pct, 4),
+        "velocityPctPerSec": round(velocity, 5),
+        "acceleration": round(acceleration, 5),
+        "tradeNotional5s": round(total_vol, 2),
+        "bestBid": b["bid"],
+        "bestAsk": b["ask"]
     }
-}
+    return result, []
 
-async function manualSell(symbol) {
-    try {
-        const r = await api(
-            '/api/order',
-            {
-                symbol,
-                action: 'SELL',
-                useDemo: true
-            }
-        );
-
-        log(
-            `إغلاق تجريبي ${symbol} | ` +
-            `الصافي ${num(r.netPnlUsdt, 4)} USDT`
-        );
-
-        await loadState();
-
-    } catch (e) {
-        log(
-            `فشل إغلاق ${symbol}: ${e.message}`,
-            true
-        );
+def cost_metrics(f):
+    fees = 2 * FEE_RATE * 100
+    slippage = 2 * SLIPPAGE_RATE * 100
+    spread = f["spreadPct"]
+    friction = fees + slippage + spread
+    return {
+        "roundTripFeePctEstimate": round(fees, 4),
+        "roundTripSlippagePctEstimate": round(slippage, 4),
+        "spreadPct": round(spread, 4),
+        "estimatedTotalFrictionPct": round(friction, 4),
+        "estimatedNetAtTargetPct": round(TARGET_GROSS_PCT - friction, 4)
     }
-}
 
-async function runTests() {
-    $('testResults').textContent =
-        'جارٍ فحص المكونات في قاعدة بيانات مؤقتة...';
+# ==========================================
+# API ENDPOINTS
+# ==========================================
 
-    try {
-        const report = await api(
-            '/api/self-test',
-            {}
-        );
-
-        const root = $('testResults');
-        root.textContent = '';
-
-        const summary = document.createElement(
-            'p'
-        );
-
-        summary.textContent =
-            `نجح ${report.passed} | ` +
-            `فشل ${report.failed} | ` +
-            `معزول: ${report.isolated}`;
-
-        root.appendChild(summary);
-
-        for (const r of report.results) {
-            const div = document.createElement(
-                'div'
-            );
-
-            div.className =
-                r.status === 'PASS'
-                    ? 'good'
-                    : 'bad';
-
-            div.textContent =
-                `${r.status} — ${r.name}: ${r.detail}`;
-
-            root.appendChild(div);
-        }
-
-        log(
-            'انتهى الفحص المعزول: ' +
-            report.passed + ' ناجح، ' +
-            report.failed + ' فاشل',
-            report.failed > 0
-        );
-
-    } catch (e) {
-        $('testResults').textContent =
-            'فشل الفحص: ' + e.message;
-
-        log(e.message, true);
+@app.get("/api/config")
+def config():
+    return {
+        "liveEnabled": ALLOW_LIVE_TRADING and bool(native_binance),
+        "hasApiKeys": bool(BINANCE_API_KEY and BINANCE_SECRET_KEY),
+        "feeRatePerSide": FEE_RATE,
+        "slippageRatePerSide": SLIPPAGE_RATE,
+        "grossTargetPct": TARGET_GROSS_PCT,
+        "minNetTargetPct": MIN_NET_TARGET_PCT,
+        "maxPositions": MAX_POSITIONS,
+        "maxDailyLossUsdt": MAX_DAILY_LOSS,
+        "symbols": SUPPORTED_CANDIDATES
     }
-}
 
-window.addEventListener('load', () => {
-    refreshStatus();
+@app.get("/api/symbols")
+async def available_symbols():
+    return {"symbols": sorted(SUPPORTED_CANDIDATES), "verified": True}
 
-    setInterval(
-        refreshStatus,
-        2500
-    );
+@app.post("/api/market-data/book")
+async def receive_book(req: BookRequest):
+    symbol = normalized(req.symbol)
+    try:
+        bids = sorted([(float(x[0]), float(x[1])) for x in req.bids[:5]], reverse=True)
+        asks = sorted([(float(x[0]), float(x[1])) for x in req.asks[:5]])
+    except (ValueError, TypeError, IndexError):
+        raise HTTPException(422, "بيانات دفتر الطلبات غير صالحة")
 
-    setInterval(() => {
-        if ($('key').value.trim()) {
-            loadState();
-        }
-    }, 4000);
-});
-</script>
+    if not bids or not asks:
+        raise HTTPException(422, "دفتر طلبات فارغ")
 
-</body>
-</html>
+    buy_volume = sum(price * qty for price, qty in bids)
+    sell_volume = sum(price * qty for price, qty in asks)
+    ratio = min(buy_volume / sell_volume, 100) if sell_volume > 0 else 1.0
+
+    now = time.time()
+    mid = (bids[0][0] + asks[0][0]) / 2
+
+    books[symbol] = {"bid": bids[0][0], "ask": asks[0][0], "imbalance": ratio, "t": now}
+    book_hist[symbol].append({"t": now, "mid": mid, "imbalance": ratio})
+
+    return {"status": "ok"}
+
+@app.post("/api/market-data/trades")
+async def receive_trades(req: TradeBatch):
+    now = time.time()
+    for trade in req.trades:
+        symbol = normalized(trade.symbol)
+        trades[symbol].append({
+            "price": trade.price,
+            "qty": trade.quantity,
+            "isBuyerMaker": trade.isBuyerMaker,
+            "t": now
+        })
+    return {"status": "ok", "count": len(req.trades)}
+
+@app.post("/api/evaluate-entry")
+async def evaluate_entry(req: SymbolRequest):
+    symbol = normalized(req.symbol)
+    f, reasons = features(symbol)
+    if f is None:
+        return {"enter": False, "score": 0, "reasons": reasons}
+
+    costs = cost_metrics(f)
+    
+    # الشروط التكتيكية الخمسة للدخول
+    checks = [
+        (f["spreadPct"] <= MAX_SPREAD_PCT, "السبريد مرتفع"),
+        (f["imbalanceRatio"] >= MIN_IMBALANCE, "عدم توازن السيولة
