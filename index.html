@@ -1,399 +1,574 @@
-import os
-import time
-import math
-import hmac
-import hashlib
-import secrets
-import sqlite3
-import asyncio
-from pathlib import Path
-from collections import defaultdict, deque
-from contextlib import asynccontextmanager
-from typing import Optional, Literal
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة الحارس السريع - محرك السكالبينغ المؤسسي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0e14',
+                        cardBg: '#151921',
+                        accentGreen: '#10b981',
+                        accentRed: '#ef4444'
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0e14; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen p-4 lg:p-6 space-y-6">
 
-import httpx
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+    <!-- HEADER -->
+    <header class="flex flex-col md:flex-row items-center justify-between bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-xl gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl font-bold border border-emerald-500/30">
+                <i class="fa-solid fa-bolt animate-pulse"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                    منصة الحارس السريع
+                    <span id="versionBadge" class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">
+                        V3.5 (Native Async)
+                    </span>
+                </h1>
+                <p class="text-xs text-slate-400">
+                    متابعة سيولة Spot | دعم التداول التجريبي والحقيقي والتنفيذ اليدوي
+                </p>
+            </div>
+        </div>
 
-# ==========================================
-# CONFIGURATION & ENV KEYS
-# ==========================================
+        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+            <div class="text-left font-mono">
+                <div class="text-[10px] text-slate-400" id="balanceLabel">رصيد المحفظة التجريبية:</div>
+                <div id="balanceDisplay" class="text-sm font-bold text-emerald-400">$10,000.00</div>
+            </div>
+            <div class="h-8 w-px bg-slate-800"></div>
+            <div class="flex items-center gap-2">
+                <span id="statusPing" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                <span id="statusText" class="text-xs text-slate-300 font-mono">وضع التجربة (Demo)</span>
+            </div>
+        </div>
+    </header>
 
-BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = Path(os.getenv("DATABASE_PATH", str(BASE_DIR / "scalper.sqlite3")))
+    <!-- CONTROLS & MANUAL EXECUTION -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- SCOPE -->
+        <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-400">نطاق الأصول المستهدفة</span>
+                <i class="fa-solid fa-layer-group text-emerald-400 text-sm"></i>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <button id="scopeTopBtn" onclick="setScope('top12')" class="px-2 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold transition text-center">
+                    🔥 أفضل 12
+                </button>
+                <button id="scopeAllBtn" onclick="setScope('all')" class="px-2 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition text-center">
+                    🌐 حتى 30
+                </button>
+            </div>
+        </div>
 
-BINANCE_API_KEY = os.getenv("BINANCE_API_KEY", "").strip()
-BINANCE_SECRET_KEY = os.getenv("BINANCE_SECRET_KEY", "").strip()
-ALLOW_LIVE_TRADING = os.getenv("ALLOW_LIVE_TRADING", "false").lower() == "true"
+        <!-- MODE & BUDGET -->
+        <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-400">وضع التداول والميزانية</span>
+                <span id="modeBadge" class="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold">
+                    تجريبي (Demo)
+                </span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="demoBtn" onclick="setMode(true)" class="flex-1 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shadow-md">
+                    تجريبي
+                </button>
+                <button id="liveBtn" onclick="setMode(false)" class="flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs">
+                    حقيقي
+                </button>
+                <div class="relative w-24">
+                    <input type="number" id="budgetInput" value="100" min="10" max="100000" class="w-full bg-darkBg border border-slate-800 rounded-xl px-2 py-1 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500" placeholder="الميزانية">
+                    <span class="absolute left-2 top-1.5 text-[10px] text-slate-500 font-mono">$</span>
+                </div>
+            </div>
+        </div>
 
-DEMO_START_BALANCE = float(os.getenv("DEMO_START_BALANCE", "10000"))
-FEE_RATE = float(os.getenv("DEMO_FEE_RATE", "0.001"))
-SLIPPAGE_RATE = float(os.getenv("DEMO_SLIPPAGE_RATE", "0.0002"))
-MIN_NET_TARGET_PCT = float(os.getenv("MIN_NET_TARGET_PCT", "0.10"))
-TARGET_GROSS_PCT = float(os.getenv("TARGET_GROSS_PCT", "0.45"))
-STOP_GROSS_PCT = float(os.getenv("STOP_GROSS_PCT", "0.30"))
-MAX_SPREAD_PCT = float(os.getenv("MAX_SPREAD_PCT", "0.10"))
-MAX_POSITIONS = int(os.getenv("MAX_POSITIONS", "3"))
-MAX_DAILY_LOSS = float(os.getenv("MAX_DAILY_LOSS_USDT", "25"))
-MIN_BUY_RATIO = float(os.getenv("MIN_BUY_RATIO", "0.55"))
-MIN_IMBALANCE = float(os.getenv("MIN_IMBALANCE", "1.3"))
-MAX_HOLD = int(os.getenv("DEFAULT_MAX_HOLD_SECONDS", "180"))
+        <!-- TIMEOUT -->
+        <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-400">الحد الأقصى لزمن الصفقة</span>
+                <span id="timeoutDisplay" class="text-xs font-mono font-bold text-amber-400">180ث (3 دقائق)</span>
+            </div>
+            <div class="space-y-1">
+                <input type="range" id="timeoutRange" min="60" max="600" step="30" value="180" oninput="updateTimeoutValue(this.value)" class="w-full accent-amber-400 cursor-pointer">
+                <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                    <span>1 دقيقة</span>
+                    <span>3 دقائق</span>
+                    <span>10 دقائق</span>
+                </div>
+            </div>
+        </div>
 
-# مرونة التوكين للتنفيذ الفوري دون تأخير شبكي
-TOKEN_LIFETIME = 6.0
-MARKET_MAX_AGE = 10.0
+        <!-- MANUAL TRADE EXECUTION MODULE -->
+        <div class="bg-cardBg border border-emerald-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                    <i class="fa-solid fa-hand-pointer"></i> تنفيذ صفقة يدوي
+                </span>
+                <span class="text-[10px] text-slate-400">تنفيذ فوري دون تأخير</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <select id="manualSymbolSelect" class="bg-darkBg border border-slate-800 text-slate-200 text-xs rounded-xl px-2 py-1.5 focus:outline-none focus:border-emerald-500 flex-1">
+                </select>
+                <button onclick="executeManualTrade()" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs shadow-md transition flex items-center gap-1">
+                    <i class="fa-solid fa-bolt"></i> شراء يدوي
+                </button>
+            </div>
+        </div>
+    </div>
 
-SUPPORTED_CANDIDATES = [
-    "BTCUSDT", "ETHUSDT", "SOLUSDT",
-    "XRPUSDT", "BNBUSDT", "DOGEUSDT",
-    "ADAUSDT", "LINKUSDT", "AVAXUSDT",
-    "LTCUSDT", "DOTUSDT", "TRXUSDT",
-    "SUIUSDT", "NEARUSDT", "APTUSDT",
-    "ATOMUSDT", "UNIUSDT", "ETCUSDT",
-    "BCHUSDT", "XLMUSDT", "FILUSDT",
-    "ARBUSDT", "OPUSDT", "AAVEUSDT",
-    "INJUSDT", "PEPEUSDT", "SHIBUSDT",
-    "ICPUSDT", "ALGOUSDT", "HBARUSDT"
-]
+    <!-- ACTIVE TRADES -->
+    <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+        <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold flex items-center gap-2">
+                <i class="fa-solid fa-stopwatch text-emerald-400"></i>
+                الصفقات النشطة والمتابعة اللحظية
+            </h3>
+            <span id="activeCountBadge" class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-bold">
+                0 صفقات
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs text-slate-300">
+                <thead class="bg-darkBg text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                        <th class="py-2.5 px-3">الرمز</th>
+                        <th class="py-2.5 px-3">سعر الدخول</th>
+                        <th class="py-2.5 px-3">السعر الأعلى (Peak)</th>
+                        <th class="py-2.5 px-3">الميزانية</th>
+                        <th class="py-2.5 px-3">النمط</th>
+                        <th class="py-2.5 px-3">الوقت المنقضي</th>
+                        <th class="py-2.5 px-3">إغلاق يدوي / الحالة</th>
+                    </tr>
+                </thead>
+                <tbody id="activeTradesTbody" class="divide-y divide-slate-800/50">
+                    <tr>
+                        <td colspan="7" class="py-6 text-center text-slate-500">
+                            لا توجد صفقات مفتوحة حالياً. المحرك المؤسسي يراقب الأصول المحددة.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-# ==========================================
-# FAST NATIVE BINANCE SPOT CLIENT (REPLACING CCXT)
-# ==========================================
+    <!-- TRADE HISTORY -->
+    <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+        <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                سجل الصفقات المنتهية (الأرباح والخسائر)
+            </h3>
+            <div class="flex items-center gap-2">
+                <span id="historyStatsBadge" class="text-xs bg-darkBg text-slate-300 px-3 py-1 rounded-lg border border-slate-700 font-mono">
+                    الصافي: $0.00 | نسبة النجاح: 0%
+                </span>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs text-slate-300">
+                <thead class="bg-darkBg text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                        <th class="py-2.5 px-3">الرمز</th>
+                        <th class="py-2.5 px-3">سعر الدخول</th>
+                        <th class="py-2.5 px-3">سعر الإغلاق</th>
+                        <th class="py-2.5 px-3">النتيجة (%)</th>
+                        <th class="py-2.5 px-3">صافي PnL ($)</th>
+                        <th class="py-2.5 px-3">مدة الصفقة</th>
+                        <th class="py-2.5 px-3">سبب الإغلاق</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTradesTbody" class="divide-y divide-slate-800/50">
+                    <tr>
+                        <td colspan="7" class="py-6 text-center text-slate-500">
+                            لا توجد صفقات مكتملة في السجل حتى الآن.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-class NativeBinanceClient:
-    """بديل خفيف ومباشر فائق السرعة لمكتبة CCXT بدون أي تعقيدات"""
-    def __init__(self, api_key: str, secret_key: str):
-        self.api_key = api_key
-        self.secret_key = secret_key
-        self.base_url = "https://api.binance.com"
-        self.client = httpx.AsyncClient(
-            headers={"X-MBX-APIKEY": self.api_key},
-            timeout=5.0
-        )
+    <!-- CONSOLE LOG -->
+    <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-terminal text-emerald-400"></i>
+                سجل أحداث البوت المباشر (Bot Movement & Live Events)
+            </span>
+            <button onclick="clearConsole()" class="text-[10px] text-slate-500 hover:text-slate-300">
+                مسح السجل
+            </button>
+        </div>
+        <div id="consoleLog" class="bg-darkBg border border-slate-900 rounded-xl p-3 h-40 overflow-y-auto font-mono text-[11px] space-y-1 text-slate-400">
+            <div>[إشعار] تم تشغيل المحرك المؤسسي والجاهزية لاستقبال الإشارات...</div>
+        </div>
+    </div>
 
-    def _sign(self, params: dict) -> dict:
-        params["timestamp"] = int(time.time() * 1000)
-        query = "&".join([f"{k}={v}" for k, v in sorted(params.items())])
-        signature = hmac.new(
-            self.secret_key.encode('utf-8'),
-            query.encode('utf-8'),
-            hashlib.sha256
-        ).hexdigest()
-        params["signature"] = signature
-        return params
+    <!-- SCRIPT ENGINE -->
+    <script>
+        const top12Assets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'BNBUSDT', 'DOGEUSDT', 'ADAUSDT', 'LINKUSDT', 'AVAXUSDT', 'LTCUSDT', 'DOTUSDT', 'TRXUSDT'];
+        const allAssets = [
+            'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'BNBUSDT', 'DOGEUSDT', 'ADAUSDT', 'LINKUSDT', 'AVAXUSDT', 'LTCUSDT', 
+            'DOTUSDT', 'TRXUSDT', 'SUIUSDT', 'NEARUSDT', 'APTUSDT', 'ATOMUSDT', 'UNIUSDT', 'ETCUSDT', 'BCHUSDT', 'XLMUSDT', 
+            'FILUSDT', 'ARBUSDT', 'OPUSDT', 'AAVEUSDT', 'INJUSDT', 'PEPEUSDT', 'SHIBUSDT', 'ICPUSDT', 'ALGOUSDT', 'HBARUSDT'
+        ];
 
-    async def fetch_balance(self) -> dict:
-        params = self._sign({})
-        res = await self.client.get(f"{self.base_url}/api/v3/account", params=params)
-        res.raise_for_status()
-        data = res.json()
-        usdt_free = 0.0
-        usdt_total = 0.0
-        for item in data.get("balances", []):
-            if item["asset"] == "USDT":
-                usdt_free = float(item["free"])
-                usdt_total = usdt_free + float(item["locked"])
-                break
-        return {"free": {"USDT": usdt_free}, "total": {"USDT": usdt_total}}
+        let activePairs = [...top12Assets];
+        let isDemoMode = true;
+        let wsSocket = null;
+        let lastBookSend = 0;
+        let tradeBuffer = [];
 
-    async def create_market_buy(self, symbol: str, quote_quantity: float) -> dict:
-        params = self._sign({
-            "symbol": symbol.upper(),
-            "side": "BUY",
-            "type": "MARKET",
-            "quoteOrderQty": round(quote_quantity, 2)
-        })
-        res = await self.client.post(f"{self.base_url}/api/v3/order", params=params)
-        res.raise_for_status()
-        data = res.json()
-        executed_qty = float(data.get("executedQty", 0.0))
-        cummulative_quote = float(data.get("cummulativeQuoteQty", quote_quantity))
-        avg_price = cummulative_quote / executed_qty if executed_qty > 0 else 0.0
-        return {"average": avg_price, "filled": executed_qty, "raw": data}
+        window.onload = function() {
+            populateManualSelect();
+            setScope('top12');
+            updateState();
+            setInterval(updateState, 2000);
+            setInterval(evaluateEngineLoop, 800);
+            setInterval(sendTradeBuffer, 300);
+        };
 
-    async def create_market_sell(self, symbol: str, quantity: float) -> dict:
-        params = self._sign({
-            "symbol": symbol.upper(),
-            "side": "SELL",
-            "type": "MARKET",
-            "quantity": f"{quantity:.6f}"
-        })
-        res = await self.client.post(f"{self.base_url}/api/v3/order", params=params)
-        res.raise_for_status()
-        data = res.json()
-        executed_qty = float(data.get("executedQty", quantity))
-        cummulative_quote = float(data.get("cummulativeQuoteQty", 0.0))
-        avg_price = cummulative_quote / executed_qty if executed_qty > 0 else 0.0
-        return {"average": avg_price, "filled": executed_qty, "raw": data}
+        function populateManualSelect() {
+            const select = document.getElementById('manualSymbolSelect');
+            select.innerHTML = activePairs.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
 
-    async def close(self):
-        await self.client.aclose()
+        function setScope(scope) {
+            const topBtn = document.getElementById('scopeTopBtn');
+            const allBtn = document.getElementById('scopeAllBtn');
 
-native_binance = None
-if BINANCE_API_KEY and BINANCE_SECRET_KEY:
-    native_binance = NativeBinanceClient(BINANCE_API_KEY, BINANCE_SECRET_KEY)
+            if (scope === 'top12') {
+                activePairs = [...top12Assets];
+                topBtn.className = "px-2 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold transition text-center";
+                allBtn.className = "px-2 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition text-center";
+                logMessage("🔥 البوت: تم حصر نطاق الفحص على أفضل 12 عملة Spot", "info");
+            } else {
+                activePairs = [...allAssets];
+                allBtn.className = "px-2 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition text-center";
+                topBtn.className = "px-2 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold transition text-center";
+                logMessage("🌐 البوت: تم توسيع النطاق ليشمل 30 عملة عالية السيولة", "info");
+            }
 
-# ==========================================
-# MARKET STATE & DATABASE
-# ==========================================
+            populateManualSelect();
+            initCombinedWebSocket();
+        }
 
-books = {}
-book_hist = defaultdict(lambda: deque(maxlen=40))
-trades = defaultdict(lambda: deque(maxlen=500))
-tokens = {}
-state_lock = asyncio.Lock()
+        async function setMode(demo) {
+            isDemoMode = demo;
+            const demoBtn = document.getElementById('demoBtn');
+            const liveBtn = document.getElementById('liveBtn');
+            const modeBadge = document.getElementById('modeBadge');
+            const balanceLabel = document.getElementById('balanceLabel');
 
-def connect():
-    conn = sqlite3.connect(DB_PATH, timeout=10)
-    conn.row_factory = sqlite3.Row
-    return conn
+            if (isDemoMode) {
+                demoBtn.className = "flex-1 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shadow-md";
+                liveBtn.className = "flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs";
+                modeBadge.innerText = "تجريبي (Demo)";
+                balanceLabel.innerText = "رصيد المحفظة التجريبية:";
+                logMessage("🧪 البوت: تم التبديل إلى نمط التداول التجريبي", "info");
+            } else {
+                liveBtn.className = "flex-1 py-1.5 bg-rose-500 text-slate-950 font-bold rounded-xl text-xs shadow-md";
+                demoBtn.className = "flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs";
+                modeBadge.innerText = "تداول حقيقي (Live Spot)";
+                balanceLabel.innerText = "رصيد Binance USDT الحقيقي:";
+                logMessage("⚡ البوت: تم التبديل إلى نمط التداول الحقيقي المباشر عبر Binance Spot!", "danger");
+            }
+            updateState();
+        }
 
-def initialize_db():
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with connect() as con:
-        con.execute("PRAGMA journal_mode=WAL")
-        con.execute("CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY, value REAL NOT NULL)")
-        con.execute("INSERT OR IGNORE INTO meta(name,value) VALUES ('cash',?)", (DEMO_START_BALANCE,))
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS positions (
-                symbol TEXT PRIMARY KEY,
-                entry_price REAL NOT NULL,
-                quantity REAL NOT NULL,
-                entry_cost REAL NOT NULL,
-                entry_fee REAL NOT NULL,
-                entry_time REAL NOT NULL,
-                peak REAL NOT NULL,
-                stop_price REAL NOT NULL,
-                target_price REAL NOT NULL,
-                max_duration INTEGER NOT NULL,
-                is_live INTEGER DEFAULT 0
-            )
-        """)
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS closed_trades (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                symbol TEXT NOT NULL,
-                entry_price REAL NOT NULL,
-                exit_price REAL NOT NULL,
-                quantity REAL NOT NULL,
-                gross_pnl REAL NOT NULL,
-                entry_fee REAL NOT NULL,
-                exit_fee REAL NOT NULL,
-                net_pnl REAL NOT NULL,
-                opened_at REAL NOT NULL,
-                closed_at REAL NOT NULL,
-                reason TEXT NOT NULL
-            )
-        """)
+        function updateTimeoutValue(val) {
+            const mins = Math.floor(val / 60);
+            const secs = val % 60;
+            document.getElementById('timeoutDisplay').innerText = `${val}ث (${mins > 0 ? mins + 'د' : ''} ${secs > 0 ? secs + 'ث' : ''})`;
+        }
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    initialize_db()
-    yield
-    if native_binance:
-        await native_binance.close()
+        function initCombinedWebSocket() {
+            if (wsSocket) {
+                try { wsSocket.close(); } catch(e){}
+            }
 
-app = FastAPI(
-    title="Rapid Guard Scalping Engine (Native Async)",
-    version="3.5.0",
-    lifespan=lifespan
-)
+            const streams = activePairs.flatMap(s => [`${s.toLowerCase()}@depth5@100ms`, `${s.toLowerCase()}@aggTrade`]).join('/');
+            wsSocket = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
 
-# ==========================================
-# REQUEST MODELS
-# ==========================================
+            wsSocket.onopen = () => {
+                logMessage("⚡ البوت: تم فتح قناة البث الحي (Binance WebSocket Stream) للأسعار والسيولة", "success");
+            };
 
-class BookRequest(BaseModel):
-    symbol: str
-    bids: list[list]
-    asks: list[list]
-    timestamp: Optional[int] = None
+            wsSocket.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    const stream = msg.stream;
+                    const data = msg.data;
+                    if (!data) return;
 
-class TradeRequest(BaseModel):
-    symbol: str
-    price: float = Field(gt=0)
-    quantity: float = Field(gt=0)
-    isBuyerMaker: bool
-    timestamp: Optional[int] = None
+                    const symbol = stream.split('@')[0].toUpperCase();
 
-class TradeBatch(BaseModel):
-    trades: list[TradeRequest] = Field(min_length=1, max_length=200)
+                    if (stream.includes('@depth5')) {
+                        const now = Date.now();
+                        if (now - lastBookSend >= 250) {
+                            lastBookSend = now;
+                            fetch('/api/market-data/book', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    symbol: symbol,
+                                    bids: data.bids,
+                                    asks: data.asks
+                                })
+                            }).catch(() => {});
+                        }
+                    } else if (stream.includes('@aggTrade')) {
+                        tradeBuffer.push({
+                            symbol: symbol,
+                            price: parseFloat(data.p),
+                            quantity: parseFloat(data.q),
+                            isBuyerMaker: data.m
+                        });
+                    }
+                } catch(e) {}
+            };
 
-class SymbolRequest(BaseModel):
-    symbol: str
+            wsSocket.onclose = () => {
+                setTimeout(initCombinedWebSocket, 3000);
+            };
+        }
 
-class OrderRequest(BaseModel):
-    symbol: str
-    action: Literal["BUY", "SELL"]
-    amountUsdt: float = Field(default=100, ge=10, le=100000)
-    signalToken: Optional[str] = None
-    useDemo: bool = True
-    maxHoldSeconds: int = Field(default=MAX_HOLD, ge=30, le=600)
-    reason: Optional[str] = None
+        function sendTradeBuffer() {
+            if (tradeBuffer.length === 0) return;
+            const payload = { trades: [...tradeBuffer] };
+            tradeBuffer = [];
 
-class ExitRequest(BaseModel):
-    symbol: str
+            fetch('/api/market-data/trades', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(() => {});
+        }
 
-# ==========================================
-# STRATEGY & FEATURE CALCULATIONS
-# ==========================================
+        async function evaluateEngineLoop() {
+            const evalPromises = activePairs.map(async (symbol) => {
+                try {
+                    const res = await fetch('/api/evaluate-entry', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ symbol: symbol })
+                    });
+                    const evalData = await res.json();
 
-def normalized(symbol):
-    symbol = symbol.upper().strip().replace("/", "")
-    if symbol not in SUPPORTED_CANDIDATES:
-        raise HTTPException(400, "الرمز غير مسموح")
-    return symbol
+                    if (evalData.enter && evalData.signalToken) {
+                        logMessage(`🎯 [إشارة دخول تلقائية] ${symbol} | السكور: ${evalData.score}% - جارِ التنفيذ...`, "success");
+                        const budget = parseFloat(document.getElementById('budgetInput').value) || 100;
+                        const maxHold = parseInt(document.getElementById('timeoutRange').value) || 180;
 
-def get_position(con, symbol):
-    row = con.execute("SELECT * FROM positions WHERE symbol=?", (symbol,)).fetchone()
-    return dict(row) if row else None
+                        const execRes = await fetch('/api/execute-order', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                symbol: symbol,
+                                action: 'BUY',
+                                amountUsdt: budget,
+                                signalToken: evalData.signalToken,
+                                useDemo: isDemoMode,
+                                maxHoldSeconds: maxHold
+                            })
+                        });
 
-def state():
-    with connect() as con:
-        cash = float(con.execute("SELECT value FROM meta WHERE name='cash'").fetchone()[0])
-        positions = [dict(r) for r in con.execute("SELECT * FROM positions ORDER BY entry_time DESC")]
-        history = [dict(r) for r in con.execute("SELECT * FROM closed_trades ORDER BY id DESC LIMIT 150")]
+                        const orderResult = await execRes.json();
+                        if (execRes.ok && orderResult.status === 'success') {
+                            logMessage(`🚀 [البوت نفّذ الشراء التلقائي] ${symbol} | السعر: $${orderResult.fillPrice}`, "success");
+                            updateState();
+                        }
+                    }
+                } catch(e) {}
+            });
 
-    equity = cash + sum(
-        p["quantity"] * books.get(p["symbol"], {}).get("bid", p["entry_price"])
-        for p in positions
-    )
+            await Promise.all(evalPromises);
+        }
 
-    return {
-        "cashUsdt": cash,
-        "equityUsdt": equity,
-        "positions": positions,
-        "history": history
-    }
+        async function executeManualTrade() {
+            const symbol = document.getElementById('manualSymbolSelect').value;
+            const budget = parseFloat(document.getElementById('budgetInput').value) || 100;
+            const maxHold = parseInt(document.getElementById('timeoutRange').value) || 180;
 
-def day_loss(con, now):
-    day = int(now // 86400) * 86400
-    total = con.execute("SELECT COALESCE(SUM(net_pnl),0) FROM closed_trades WHERE closed_at >= ?", (day,)).fetchone()[0]
-    return max(0.0, -float(total))
+            logMessage(`✋ [طلب يدوي] جارِ تنفيذ شراء يدوي فوراً للرمز ${symbol}...`, "info");
 
-def features(symbol):
-    now = time.time()
-    b = books.get(symbol)
-    hist = [x for x in book_hist[symbol] if now - x["t"] <= 12]
-    recent = [t for t in trades[symbol] if now - t["t"] < 10]
+            try {
+                const execRes = await fetch('/api/execute-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        action: 'BUY',
+                        amountUsdt: budget,
+                        signalToken: "MANUAL_OVERRIDE_TOKEN",
+                        useDemo: isDemoMode,
+                        maxHoldSeconds: maxHold
+                    })
+                });
 
-    if not b:
-        return None, ["بيانات دفتر الطلبات غير متوفرة"]
+                const result = await execRes.json();
+                if (execRes.ok && result.status === 'success') {
+                    logMessage(`✅ [نجاح التنفيذ اليدوي] تم فتح صفقة ${symbol} بسعر $${result.fillPrice}`, "success");
+                    updateState();
+                } else {
+                    logMessage(`❌ [فشل التنفيذ] ${result.detail || ''}`, "danger");
+                }
+            } catch(e) {
+                logMessage(`❌ خطأ أثناء تنفيذ الطلب اليدوي: ${e.message}`, "danger");
+            }
+        }
 
-    # 1. حساب تدفق الشراء والبيع المباشر من الصفقات (Tape Buy Ratio)
-    buy = sum(t["qty"] * t["price"] for t in recent if not t["isBuyerMaker"])
-    sell = sum(t["qty"] * t["price"] for t in recent if t["isBuyerMaker"])
-    total_vol = buy + sell
-    buy_ratio = (buy / total_vol) if total_vol > 0 else (0.5 + min(0.4, (b["imbalance"] - 1) * 0.1))
+        async function closePositionManual(symbol, isLive) {
+            try {
+                const res = await fetch('/api/execute-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        action: 'SELL',
+                        useDemo: !isLive,
+                        reason: 'MANUAL_USER_CLOSE'
+                    })
+                });
+                const result = await res.json();
+                if (res.ok && result.status === 'success') {
+                    logMessage(`✅ [تم الإغلاق اليدوي بنجاح] ${symbol}`, "success");
+                    updateState();
+                }
+            } catch(e) {}
+        }
 
-    # 2. حساب السبريد (Spread Pct)
-    spread_pct = ((b["ask"] - b["bid"]) / b["ask"]) * 100
+        async function updateState() {
+            try {
+                const balRes = await fetch(`/api/account-balance?demo=${isDemoMode}`);
+                const balData = await balRes.json();
+                if(balData.status === 'success') {
+                    document.getElementById('balanceDisplay').innerText = `$${balData.totalUsdtBalance.toFixed(2)}`;
+                }
 
-    # 3. حساب السرعة والتسارع اللحظي (Velocity & Acceleration)
-    velocity = 0.001
-    acceleration = 0.000
-    if len(hist) >= 4:
-        mid_pt = len(hist) // 2
-        v1 = (hist[mid_pt]["mid"] / hist[0]["mid"] - 1) / max(hist[mid_pt]["t"] - hist[0]["t"], 0.01)
-        v2 = (hist[-1]["mid"] / hist[mid_pt]["mid"] - 1) / max(hist[-1]["t"] - hist[mid_pt]["t"], 0.01)
-        velocity = v2 * 100
-        acceleration = (v2 - v1) * 100
+                const res = await fetch('/api/state');
+                const stateData = await res.json();
 
-    result = {
-        "imbalanceRatio": round(b["imbalance"], 3),
-        "buyRatio": round(buy_ratio, 3),
-        "spreadPct": round(spread_pct, 4),
-        "velocityPctPerSec": round(velocity, 5),
-        "acceleration": round(acceleration, 5),
-        "tradeNotional5s": round(total_vol, 2),
-        "bestBid": b["bid"],
-        "bestAsk": b["ask"]
-    }
-    return result, []
+                renderPositions(stateData.positions);
+                renderHistory(stateData.history);
 
-def cost_metrics(f):
-    fees = 2 * FEE_RATE * 100
-    slippage = 2 * SLIPPAGE_RATE * 100
-    spread = f["spreadPct"]
-    friction = fees + slippage + spread
-    return {
-        "roundTripFeePctEstimate": round(fees, 4),
-        "roundTripSlippagePctEstimate": round(slippage, 4),
-        "spreadPct": round(spread, 4),
-        "estimatedTotalFrictionPct": round(friction, 4),
-        "estimatedNetAtTargetPct": round(TARGET_GROSS_PCT - friction, 4)
-    }
+                for (let pos of stateData.positions) {
+                    const exitRes = await fetch('/api/position/evaluate-exit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ symbol: pos.symbol })
+                    });
+                    const exitData = await exitRes.json();
 
-# ==========================================
-# API ENDPOINTS
-# ==========================================
+                    if (exitData.exit) {
+                        logMessage(`🔒 [إغلاق تلقائي] ${pos.symbol} | السبب: ${exitData.reason}`, "info");
+                        await fetch('/api/execute-order', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                symbol: pos.symbol,
+                                action: 'SELL',
+                                useDemo: !pos.is_live,
+                                reason: exitData.reason
+                            })
+                        });
+                        updateState();
+                    }
+                }
+            } catch(e) {}
+        }
 
-@app.get("/api/config")
-def config():
-    return {
-        "liveEnabled": ALLOW_LIVE_TRADING and bool(native_binance),
-        "hasApiKeys": bool(BINANCE_API_KEY and BINANCE_SECRET_KEY),
-        "feeRatePerSide": FEE_RATE,
-        "slippageRatePerSide": SLIPPAGE_RATE,
-        "grossTargetPct": TARGET_GROSS_PCT,
-        "minNetTargetPct": MIN_NET_TARGET_PCT,
-        "maxPositions": MAX_POSITIONS,
-        "maxDailyLossUsdt": MAX_DAILY_LOSS,
-        "symbols": SUPPORTED_CANDIDATES
-    }
+        function renderPositions(positions) {
+            const tbody = document.getElementById('activeTradesTbody');
+            document.getElementById('activeCountBadge').innerText = `${positions.length} صفقات`;
 
-@app.get("/api/symbols")
-async def available_symbols():
-    return {"symbols": sorted(SUPPORTED_CANDIDATES), "verified": True}
+            if (positions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك المؤسسي يراقب الأصول المحددة.</td></tr>`;
+                return;
+            }
 
-@app.post("/api/market-data/book")
-async def receive_book(req: BookRequest):
-    symbol = normalized(req.symbol)
-    try:
-        bids = sorted([(float(x[0]), float(x[1])) for x in req.bids[:5]], reverse=True)
-        asks = sorted([(float(x[0]), float(x[1])) for x in req.asks[:5]])
-    except (ValueError, TypeError, IndexError):
-        raise HTTPException(422, "بيانات دفتر الطلبات غير صالحة")
+            tbody.innerHTML = positions.map(p => {
+                const elapsedSec = Math.round(Date.now() / 1000 - p.entry_time);
+                const modeLabel = p.is_live ? '<span class="text-rose-400 font-bold">حقيقي</span>' : '<span class="text-amber-400">تجريبي</span>';
+                return `
+                    <tr class="hover:bg-slate-900/40">
+                        <td class="py-2.5 px-3 font-bold font-mono text-slate-200">${p.symbol}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-400">$${p.entry_price.toFixed(4)}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-200">$${p.peak.toFixed(4)}</td>
+                        <td class="py-2.5 px-3 font-mono text-emerald-400">$${p.entry_cost.toFixed(2)}</td>
+                        <td class="py-2.5 px-3 font-mono text-xs">${modeLabel}</td>
+                        <td class="py-2.5 px-3 font-mono text-amber-400 font-bold">${elapsedSec}ث / ${p.max_duration}ث</td>
+                        <td class="py-2.5 px-3 font-mono text-[11px] flex items-center justify-between gap-2">
+                            <span class="text-emerald-400">نشطة</span>
+                            <button onclick="closePositionManual('${p.symbol}', ${p.is_live})" class="px-2 py-0.5 bg-rose-500/20 text-rose-400 hover:bg-rose-500/40 rounded border border-rose-500/30 text-[10px] font-bold">إغلاق يدوي</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
 
-    if not bids or not asks:
-        raise HTTPException(422, "دفتر طلبات فارغ")
+        function renderHistory(history) {
+            const tbody = document.getElementById('historyTradesTbody');
+            const badge = document.getElementById('historyStatsBadge');
 
-    buy_volume = sum(price * qty for price, qty in bids)
-    sell_volume = sum(price * qty for price, qty in asks)
-    ratio = min(buy_volume / sell_volume, 100) if sell_volume > 0 else 1.0
+            if (!history || history.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مكتملة في السجل حتى الآن.</td></tr>`;
+                badge.innerText = `الصافي: $0.00 | نسبة النجاح: 0%`;
+                return;
+            }
 
-    now = time.time()
-    mid = (bids[0][0] + asks[0][0]) / 2
+            const wins = history.filter(t => t.net_pnl > 0).length;
+            const winRate = ((wins / history.length) * 100).toFixed(1);
+            const totalNetPnl = history.reduce((acc, t) => acc + t.net_pnl, 0).toFixed(2);
 
-    books[symbol] = {"bid": bids[0][0], "ask": asks[0][0], "imbalance": ratio, "t": now}
-    book_hist[symbol].append({"t": now, "mid": mid, "imbalance": ratio})
+            badge.innerText = `الصافي: $${totalNetPnl} USDT | نسبة النجاح: ${winRate}% (${wins}/${history.length})`;
 
-    return {"status": "ok"}
+            tbody.innerHTML = history.map(t => {
+                const isWin = t.net_pnl > 0;
+                const duration = Math.round(t.closed_at - t.opened_at);
+                return `
+                    <tr class="hover:bg-slate-900/40">
+                        <td class="py-2.5 px-3 font-bold font-mono text-slate-200">${t.symbol}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-400">$${t.entry_price.toFixed(4)}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-200">$${t.exit_price.toFixed(4)}</td>
+                        <td class="py-2.5 px-3 font-mono font-bold ${isWin ? 'text-emerald-400' : 'text-rose-400'}">${t.gross_pnl.toFixed(2)}$</td>
+                        <td class="py-2.5 px-3 font-mono font-bold ${isWin ? 'text-emerald-400' : 'text-rose-400'}">${isWin ? '+' : ''}$${t.net_pnl.toFixed(3)}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-400">${duration}ث</td>
+                        <td class="py-2.5 px-3 text-[11px] font-bold ${isWin ? 'text-emerald-400' : 'text-rose-400'}">${t.reason}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
 
-@app.post("/api/market-data/trades")
-async def receive_trades(req: TradeBatch):
-    now = time.time()
-    for trade in req.trades:
-        symbol = normalized(trade.symbol)
-        trades[symbol].append({
-            "price": trade.price,
-            "qty": trade.quantity,
-            "isBuyerMaker": trade.isBuyerMaker,
-            "t": now
-        })
-    return {"status": "ok", "count": len(req.trades)}
+        function logMessage(msg, type = "info") {
+            const consoleElem = document.getElementById('consoleLog');
+            const colorClass = type === "success" ? "text-emerald-400" : type === "danger" ? "text-rose-400" : "text-amber-400";
+            const timeStr = new Date().toLocaleTimeString('ar-SA');
+            consoleElem.innerHTML = `<div class="${colorClass}">[${timeStr}] ${msg}</div>` + consoleElem.innerHTML;
+        }
 
-@app.post("/api/evaluate-entry")
-async def evaluate_entry(req: SymbolRequest):
-    symbol = normalized(req.symbol)
-    f, reasons = features(symbol)
-    if f is None:
-        return {"enter": False, "score": 0, "reasons": reasons}
-
-    costs = cost_metrics(f)
-    
-    # الشروط التكتيكية الخمسة للدخول
-    checks = [
-        (f["spreadPct"] <= MAX_SPREAD_PCT, "السبريد مرتفع"),
-        (f["imbalanceRatio"] >= MIN_IMBALANCE, "عدم توازن السيولة
+        function clearConsole() {
+            document.getElementById('consoleLog').innerHTML = `<div>[إشعار] تم مسح سجل الأحداث...</div>`;
+        }
+    </script>
+</body>
+</html>
